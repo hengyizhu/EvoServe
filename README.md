@@ -1,6 +1,6 @@
 # EvoServe — π0.5 serving / training reproduction
 
-Private research snapshot for migrating the A6000 serving experiments to an A100 allocation. **No IG-VLA/GIST experiments, model weights, datasets, prefix caches, checkpoints, raw logs or result directories are included.** The only numerical reference is [`reference/summary.csv`](reference/summary.csv). The running A6000 experiment directories were read, not modified or restarted.
+Private research snapshot for migrating the A6000 serving experiments to an A100 allocation. **No IG-VLA/GIST experiments, model weights, datasets, prefix caches, checkpoints, raw logs or raw result directories are included.** Curated numerical references are [`reference/summary.csv`](reference/summary.csv) and the explicitly requested summaries in [`results/`](results/). The running A6000 experiment directories were read, not modified or restarted.
 
 ## Layout
 

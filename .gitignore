@@ -1,4 +1,4 @@
-# Runtime artifacts: never commit weights, datasets, caches or measurements.
+# Runtime artifacts: only explicitly allowlisted summary CSVs are committed.
 /.venv/
 /venv/
 __pycache__/
@@ -38,3 +38,7 @@ work/
 .env.*
 *.pem
 *.key
+
+# User-requested curated experiment summaries only.
+!/results/pi05_optimized_20261107/optimized_inference.csv
+!/results/pi05_optimized_20261107/training_mb4.csv
