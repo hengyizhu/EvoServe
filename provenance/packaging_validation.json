@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-11-09T15:56:52.104146-05:00",
+  "tests": {
+    "171_original_source_hashes": "passed",
+    "953_python_files_ast_parse": "passed",
+    "materialize_paths": "passed",
+    "mock_allocation_affinity": "passed",
+    "A6000_A100_MPS_SM_thresholds": "passed",
+    "serving_input_four_arrays_exact_equal": "passed",
+    "vendored_RLinf_import_no_CUDA_initialization": "passed",
+    "bash_syntax": "passed",
+    "no_weight_dataset_cache_checkpoint_log_artifacts": "passed"
+  },
+  "gpu_benchmarks_started_for_packaging": 0,
+  "live_scheduler_pid_unchanged": 92433,
+  "remote_repository": "git@github.com:hengyizhu/EvoServe.git",
+  "remote_initial_refs": "empty",
+  "unauthenticated_repository_API": 404
+}

@@ -1,0 +1,54 @@
+{
+  "allowed_gpus": [
+    0,
+    1
+  ],
+  "never_preempt_running_jobs": true,
+  "config_gate": "LoRA seed08 adaptation>=29/50 -> best success, tie lower LR; otherwise full lr1e-5",
+  "full_fallback_note": "augmentationOFF; historical stable full evidence was augmentationON; must report new confirmation honestly",
+  "confirmation": "seed09/10 new cached training and100episodes; reuse seed08 screened/oldfull checkpoint data, labelled",
+  "tail": {
+    "requires_idle_gpus": [
+      2,
+      3
+    ],
+    "monitor_interval_seconds": 1,
+    "training_percent": 30,
+    "clients": 1,
+    "period_ms": 250,
+    "deadline_ms": 250,
+    "rate_caps": [
+      "unlimited",
+      3,
+      2,
+      1
+    ],
+    "windows_per_cap": 5,
+    "seconds_per_window": 60,
+    "contamination": "flag windows if othercards become busy; do not call those isolated results"
+  },
+  "curve": {
+    "conditions": [
+      "lowlight",
+      "camera_shift",
+      "colorcast"
+    ],
+    "semantic_task": "same LIBERO10 drawer task3, distinct synthetic observation perturbations",
+    "parent_gate": "each newcondition50episodes success<50%, first passing predeclaredcandidate",
+    "steps": 2000,
+    "seed": 20261108,
+    "EMA": 0.999,
+    "augmentation": false,
+    "checkpoints": [
+      100,
+      250,
+      500,
+      1000,
+      2000
+    ],
+    "episodes_per_checkpoint": 50,
+    "training_cache": "complete service-path B1 pinnedhost cache generated for matching transformedinputs",
+    "failed_gate": "report missing curve if all declared candidates fail; no fabricated substitute"
+  },
+  "report": "early-morning artifact automatically refreshed with available evidence; no external messages sent"
+}

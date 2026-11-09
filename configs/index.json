@@ -1,0 +1,267 @@
+[
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "preflight/A1/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__preflight__A1__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "co/A1/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__co__A1__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "co/A2/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__co__A2__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "co/A0/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__co__A0__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "solo/A1/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__solo__A1__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "solo/A2/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__solo__A2__config.json"
+  },
+  {
+    "round": "pi05_a1_baseline_20261108",
+    "original_relative": "solo/A0/config.json",
+    "config": "configs/run_records/pi05_a1_baseline_20261108__solo__A0__config.json"
+  },
+  {
+    "round": "pi05_lora_lr_20261108",
+    "original_relative": "training/lr2e-4_s20261108/config.json",
+    "config": "configs/run_records/pi05_lora_lr_20261108__training__lr2e-4_s20261108__config.json"
+  },
+  {
+    "round": "pi05_lora_lr_20261108",
+    "original_relative": "training/lr5e-5_s20261108/config.json",
+    "config": "configs/run_records/pi05_lora_lr_20261108__training__lr5e-5_s20261108__config.json"
+  },
+  {
+    "round": "pi05_lora_lr_20261108",
+    "original_relative": "training/lr1e-4_s20261108/config.json",
+    "config": "configs/run_records/pi05_lora_lr_20261108__training__lr1e-4_s20261108__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_full_s20261110/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_full_s20261110__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_lora32_heads_s20261110/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_lora32_heads_s20261110__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_lora32_heads_s20261109/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_lora32_heads_s20261109__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_curve_drawer_lowlight/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_curve_drawer_lowlight__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_full_s20261109/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_full_s20261109__config.json"
+  },
+  {
+    "round": "pi05_extended_20261109",
+    "original_relative": "training/extended_lora32_heads_s20261108/config.json",
+    "config": "configs/run_records/pi05_extended_20261109__training__extended_lora32_heads_s20261108__config.json"
+  },
+  {
+    "round": "vla_ladder_20261020",
+    "original_relative": "training/L1/optimizer_config.json",
+    "config": "configs/run_records/vla_ladder_20261020__training__L1__optimizer_config.json"
+  },
+  {
+    "round": "vla_ladder_20261020",
+    "original_relative": "training/L2/optimizer_config.json",
+    "config": "configs/run_records/vla_ladder_20261020__training__L2__optimizer_config.json"
+  },
+  {
+    "round": "vla_ladder_20261020",
+    "original_relative": "training/L3/optimizer_config.json",
+    "config": "configs/run_records/vla_ladder_20261020__training__L3__optimizer_config.json"
+  },
+  {
+    "round": "pi05_measure_20261107",
+    "original_relative": "training/action/config.json",
+    "config": "configs/run_records/pi05_measure_20261107__training__action__config.json"
+  },
+  {
+    "round": "pi05_measure_20261107",
+    "original_relative": "training/action_vision_lora/config.json",
+    "config": "configs/run_records/pi05_measure_20261107__training__action_vision_lora__config.json"
+  },
+  {
+    "round": "vla_followup_20261020",
+    "original_relative": "training/L1_seedA/optimizer_config.json",
+    "config": "configs/run_records/vla_followup_20261020__training__L1_seedA__optimizer_config.json"
+  },
+  {
+    "round": "vla_followup_20261020",
+    "original_relative": "training/L1_seedA/training_config.json",
+    "config": "configs/run_records/vla_followup_20261020__training__L1_seedA__training_config.json"
+  },
+  {
+    "round": "vla_followup_20261020",
+    "original_relative": "training/L1_seedB/optimizer_config.json",
+    "config": "configs/run_records/vla_followup_20261020__training__L1_seedB__optimizer_config.json"
+  },
+  {
+    "round": "vla_followup_20261020",
+    "original_relative": "training/L1_seedB/training_config.json",
+    "config": "configs/run_records/vla_followup_20261020__training__L1_seedB__training_config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/c_seed20261108/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__c_seed20261108__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/a_seed909090/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__a_seed909090__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/a_seed20261108/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__a_seed20261108__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/c_seed20261107/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__c_seed20261107__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/b_seed20261107/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__b_seed20261107__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "learning/a_seed20261107/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__learning__a_seed20261107__config.json"
+  },
+  {
+    "round": "pi05_cache_20261107",
+    "original_relative": "prototype/config.json",
+    "config": "configs/run_records/pi05_cache_20261107__prototype__config.json"
+  },
+  {
+    "round": "pi05_overnight_20261108",
+    "original_relative": "training/confirm_full_s20261110/config.json",
+    "config": "configs/run_records/pi05_overnight_20261108__training__confirm_full_s20261110__config.json"
+  },
+  {
+    "round": "pi05_overnight_20261108",
+    "original_relative": "training/curve_camera_shift/config.json",
+    "config": "configs/run_records/pi05_overnight_20261108__training__curve_camera_shift__config.json"
+  },
+  {
+    "round": "pi05_overnight_20261108",
+    "original_relative": "training/curve_lowlight/config.json",
+    "config": "configs/run_records/pi05_overnight_20261108__training__curve_lowlight__config.json"
+  },
+  {
+    "round": "pi05_overnight_20261108",
+    "original_relative": "training/confirm_full_s20261109/config.json",
+    "config": "configs/run_records/pi05_overnight_20261108__training__confirm_full_s20261109__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_a_s20261110/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_a_s20261110__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_b_s20261109/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_b_s20261109__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/lora32_b_s20261108/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__lora32_b_s20261108__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/e2e_full_cache_s20261112/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__e2e_full_cache_s20261112__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_b_s20261110/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_b_s20261110__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/cost_lora32_b_s20261108_30/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__cost_lora32_b_s20261108_30__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/e2e_full_cache_s20261111/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__e2e_full_cache_s20261111__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/lora32_b_s20261109/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__lora32_b_s20261109__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_b_s20261108/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_b_s20261108__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_a_s20261109/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_a_s20261109__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/e2e_full_recompute_s20261112/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__e2e_full_recompute_s20261112__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/e2e_full_recompute_s20261111/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__e2e_full_recompute_s20261111__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/full_a_s20261108/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__full_a_s20261108__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/lora32_b_s20261110/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__lora32_b_s20261110__config.json"
+  },
+  {
+    "round": "pi05_stability_round2",
+    "original_relative": "training/cost_full_b_s20261108_30/config.json",
+    "config": "configs/run_records/pi05_stability_round2__training__cost_full_b_s20261108_30__config.json"
+  },
+  {
+    "round": "pi05_optimized_20261107",
+    "original_relative": "training_mb4/action/config.json",
+    "config": "configs/run_records/pi05_optimized_20261107__training_mb4__action__config.json"
+  },
+  {
+    "round": "pi05_optimized_20261107",
+    "original_relative": "training_mb4/action_vision_lora/config.json",
+    "config": "configs/run_records/pi05_optimized_20261107__training_mb4__action_vision_lora__config.json"
+  }
+]

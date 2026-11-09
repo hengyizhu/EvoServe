@@ -1,0 +1,50 @@
+{
+  "seeds": [
+    20261108,
+    20261109,
+    20261110
+  ],
+  "families": {
+    "full": {
+      "lr": 1e-05,
+      "schedule": "50-step warmup then constant"
+    },
+    "lora32_heads": {
+      "lr": 5e-05,
+      "schedule": "50-step warmup then cosine to10% at2000"
+    }
+  },
+  "comparison_steps": 2000,
+  "curves_steps": 4000,
+  "curve_checkpoints": [
+    100,
+    250,
+    500,
+    1000,
+    2000,
+    3000,
+    4000
+  ],
+  "augmentation": false,
+  "EMA": 0.999,
+  "microbatch": 4,
+  "accumulation": 2,
+  "threshold": {
+    "adaptation_successes": 29,
+    "history_successes": 39,
+    "seed_range_pp": 25
+  },
+  "parent_gate": "successes<25/50",
+  "main_curves": [
+    "drawer_lowlight",
+    "book",
+    "microwave"
+  ],
+  "appendix_curve": "drawer_shift",
+  "training_storage": "/var/tmp/hengyi_pi05_extended_20261109/training",
+  "cache": "pinned host service path, asynchronous H2D",
+  "resource_policy": "at most one cached trainer; remaining free GPUs evaluate; never preempt foreign work",
+  "extension": "replay original first2000 to recover optimizer/EMA trajectory; require bitwise EMA equivalence before step2001",
+  "curve_family": "full",
+  "curve_lr": 1e-05
+}

@@ -1,0 +1,220 @@
+{
+  "3": {
+    "available_state_count": 50,
+    "old_indices": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "selected": [
+      {
+        "index": 30,
+        "state_sha256": "21fb8cffc5f983082feabace5f5a14d7c655e00e27127d593ce3ece3c184633e"
+      },
+      {
+        "index": 31,
+        "state_sha256": "84429ea13f1c7a08c58f7deb2569dd2f59b90957564e3c241e10dd3041512ec6"
+      },
+      {
+        "index": 32,
+        "state_sha256": "cd21040cd27877acd22f35841a89709d9bc31b1c4f69cc2d57a87f7fe3017b89"
+      },
+      {
+        "index": 33,
+        "state_sha256": "ca3a5cc816fc168c8c9d730fdc4fbbeded8997d1daed18219307f73c4c795943"
+      },
+      {
+        "index": 34,
+        "state_sha256": "32984552be15ff126c2f4bad39a0e015a2e0aaaf7b3f78395b6fea7a6747de51"
+      },
+      {
+        "index": 35,
+        "state_sha256": "f562c40a3925683e6e9c7c7f049f572e7821d04c02651538c76a253fa3567f8f"
+      },
+      {
+        "index": 36,
+        "state_sha256": "b5dee2bd0d5c3ec37f5fb5226698ccd9bd38ea9cab5d3e2f0a9f723f5df95657"
+      },
+      {
+        "index": 37,
+        "state_sha256": "604a03fc7c99d38d2cadb9927c57c52649ee10ba17856092408bb3cc89ebd1ee"
+      },
+      {
+        "index": 38,
+        "state_sha256": "839f5f11f17e41a28507656f3ca7329d530d28538b8f0a704074f554b95fa352"
+      },
+      {
+        "index": 39,
+        "state_sha256": "ae8ed55a1f88a744e1c962803c2a84cc889dd3a0b140b92a5c6b1da733fce481"
+      },
+      {
+        "index": 40,
+        "state_sha256": "5d04705371a8fc50035231c26b4ae1c7d8c5fb12ec863b7b91dcd49dbc367ece"
+      },
+      {
+        "index": 41,
+        "state_sha256": "ce8672ec79b1a372493acc08f8ab92fd7e81c2f9fa2ed90e3e729327fec24eea"
+      },
+      {
+        "index": 42,
+        "state_sha256": "4472d61e7a5ddf21cd7cc5c3a2aa0d9284a86e7b64e65ed3085b0b0559273c87"
+      },
+      {
+        "index": 43,
+        "state_sha256": "c323df1a05f108d93868d0eef67a84909f2586c7eca82a4b4b7f8cb411cc7e54"
+      },
+      {
+        "index": 44,
+        "state_sha256": "0374cc488ad5c68b2766bebee6364fe4536e3e6e8ab94fefa89007358d345ada"
+      },
+      {
+        "index": 45,
+        "state_sha256": "4d80370d1bf87c890d7593e35fcf4b5fcbc9972564607e9a8e916aac70fd5514"
+      },
+      {
+        "index": 46,
+        "state_sha256": "c4adf114e2be1857766e3a49c2128dcd46073851f64b79cb72fcb56e7d5504d0"
+      },
+      {
+        "index": 47,
+        "state_sha256": "61f8f5125024b9aaf854e53e306355047dfc81583012e3b73f5a9a6973a755ae"
+      },
+      {
+        "index": 48,
+        "state_sha256": "3428d3529e7a449c5dd47e563a2c4b1475d8bfec9d64c3068e0704438568cf6f"
+      },
+      {
+        "index": 49,
+        "state_sha256": "cfc7e736d699eb7ef649505a6c358db039e60efcbe4dfdaaf3f009238038010a"
+      }
+    ],
+    "count": 20,
+    "language": "put the black bowl in the bottom drawer of the cabinet and close it"
+  },
+  "0": {
+    "available_state_count": 50,
+    "old_indices": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "selected": [
+      {
+        "index": 30,
+        "state_sha256": "ba205c0f9f1680957015fb37ee00500c3cd03a30540bb83ec8b856efcf5b925e"
+      },
+      {
+        "index": 31,
+        "state_sha256": "ddf7ab5d007fad164a51292976ff50ab6f95448d50446e1a3db30618fb1a48f0"
+      },
+      {
+        "index": 32,
+        "state_sha256": "c0c6740129c25b9e6a7e8490d910e976325956c92ff00307672b5cac0e556b53"
+      },
+      {
+        "index": 33,
+        "state_sha256": "728aae415b9e91f76a2e6ecdbe5f90bcde8a9774a46d56a96d4b7011ba95468e"
+      },
+      {
+        "index": 34,
+        "state_sha256": "2d07586d603b5fa998010e5aad51d9f610d2acca9f60ed5b76b8ea86d155e525"
+      },
+      {
+        "index": 35,
+        "state_sha256": "d10f0f897baa266979d4488fb8a7f478f5989b11aaab1d5bc0c2b8f11012e76e"
+      },
+      {
+        "index": 36,
+        "state_sha256": "2353bc589e580d14d44d8bc8ae5b6c3d654c208138a62c01287c3502ec5f2514"
+      },
+      {
+        "index": 37,
+        "state_sha256": "824abb69855d29c4b5b1f436cb6766de8603b59a4b3907f7c1c2486476a4308b"
+      },
+      {
+        "index": 38,
+        "state_sha256": "b2475023ebd89ddb00d57a9bde20975bee3a19e9114e7a17c26111a5762c26ab"
+      },
+      {
+        "index": 39,
+        "state_sha256": "34d1b00b37b461620ab0ed76466888a121ec9f5555193dd1df0d8951abf6ff96"
+      },
+      {
+        "index": 40,
+        "state_sha256": "71a5cb5ea5975160e8c84b7e13d73358fab88840e802084554c812f21532b04c"
+      },
+      {
+        "index": 41,
+        "state_sha256": "9cd69a5550ee4ba746ca2f395889ea221af7efb76a2aa388f8b8b2a776d4f117"
+      },
+      {
+        "index": 42,
+        "state_sha256": "f38a6d717a2d2139762f15595a29efa62c8ad2f0197ed6f8542d98d76cad4fc1"
+      },
+      {
+        "index": 43,
+        "state_sha256": "f55f4c7562bca27be0326b7037f13125fda28006c49e846c033c54dcb841cd98"
+      },
+      {
+        "index": 44,
+        "state_sha256": "e3686cf57ad431bac62431b43182245e05a0266e5bd421b5990739b70fa072b6"
+      },
+      {
+        "index": 45,
+        "state_sha256": "8abd1901c4f659508d5b1d8e3d5e3a25f87b5938643c34243bc774944f86a282"
+      },
+      {
+        "index": 46,
+        "state_sha256": "a93a61650625d48ed3d872ae3b7edac69b45f535ded8b086da7f9cf9f41be411"
+      },
+      {
+        "index": 47,
+        "state_sha256": "cc8f8cb4e9756115e3a08d979ca26a841bcb758d4e9eaf1cf85e3f7ca3d22a05"
+      },
+      {
+        "index": 48,
+        "state_sha256": "a853cf265af29a73afb0523773f14c8dda94e42d345497dd8be894776e9cfbb7"
+      },
+      {
+        "index": 49,
+        "state_sha256": "d851284d9a94e54612ae8103ccbfc0c49cc0eb26b411fe9c10f4f93d674a8d0a"
+      }
+    ],
+    "count": 20,
+    "language": "put both the alphabet soup and the tomato sauce in the basket"
+  }
+}

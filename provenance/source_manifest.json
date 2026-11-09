@@ -1,0 +1,857 @@
+[
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/train.py",
+    "destination": "experiments/vla_ladder_20261020/train.py",
+    "sha256": "80de026770ef09cd7381fe7806bc846fdda561ce5baab3b1c0f2758aee9864f9"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/install_local.py",
+    "destination": "experiments/vla_ladder_20261020/install_local.py",
+    "sha256": "3ef8395a1dc20fda1108a211afa517751b228c08efcb05a83e0bb02cfc50faca"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/download_parent.py",
+    "destination": "experiments/vla_ladder_20261020/download_parent.py",
+    "sha256": "017124197222913666dbea5f4db3a0eccc368a8c395b40b8725acdd216724a3d"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/data_split.json",
+    "destination": "experiments/vla_ladder_20261020/data_split.json",
+    "sha256": "8cfeb7d5e0e86ba84590936921fc5cee935d4bbc99bb3fc5d2d55acbfc768c2b"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/evaluate.py",
+    "destination": "experiments/vla_ladder_20261020/evaluate.py",
+    "sha256": "0b1de7ead3225056f488e79d5290a8fb905398b1b3d31d39027116865cdc0a7b"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/run_four_gpu.py",
+    "destination": "experiments/vla_ladder_20261020/run_four_gpu.py",
+    "sha256": "3c81e37d37c82422e247c1be10559889beb69dd05bdf0012b1625c3f9f14398e"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/experiment.json",
+    "destination": "experiments/vla_ladder_20261020/experiment.json",
+    "sha256": "98436ab9296f93d360dfb90ba2f5fce9fae6f5284c45209bf2bb23b050e0635c"
+  },
+  {
+    "source": "/home/hengyi/vla_ladder_20261020/sample_sequence.json",
+    "destination": "experiments/vla_ladder_20261020/sample_sequence.json",
+    "sha256": "dd6f4322176b9cecb70696a01129f77a3fe29f84b1867122f9c4edca55d79f22"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/train.py",
+    "destination": "experiments/vla_followup_20261020/train.py",
+    "sha256": "5319d88ba32b2a9a9039f70a9ff45de34d00173c6c51711939490db95f1fd7c4"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/eval_queue.py",
+    "destination": "experiments/vla_followup_20261020/eval_queue.py",
+    "sha256": "e08416d81dea388e7fa2a098818ccbc6e0ec55c3118a79e8dc3e4700b5b37104"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/data_split.json",
+    "destination": "experiments/vla_followup_20261020/data_split.json",
+    "sha256": "8cfeb7d5e0e86ba84590936921fc5cee935d4bbc99bb3fc5d2d55acbfc768c2b"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/evaluate.py",
+    "destination": "experiments/vla_followup_20261020/evaluate.py",
+    "sha256": "0188b45ad0f09f951b32adf95a581bea342225038aadb95d8aaa5292b9530405"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/interference_parallel.py",
+    "destination": "experiments/vla_followup_20261020/interference_parallel.py",
+    "sha256": "58b0322b7ba6b2ac0bb5a2fbfc36fe7284315ce9f7b6954e560495a4afef5341"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/protocol.json",
+    "destination": "experiments/vla_followup_20261020/protocol.json",
+    "sha256": "5f0228c38b1bc4ad58a4b8e98c0a1cc497a34e27e99bdabe4e03fcfc87642159"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/render_probe.py",
+    "destination": "experiments/vla_followup_20261020/render_probe.py",
+    "sha256": "68009cdb451f815eabcb863e17efab3e3532e79964a28c1adf74c1badb61a813"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/experiment.json",
+    "destination": "experiments/vla_followup_20261020/experiment.json",
+    "sha256": "97cf22a4bf55ca76488755a0f13a98599a84c7f0644fe992e7557f94d57cf519"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/interference.py",
+    "destination": "experiments/vla_followup_20261020/interference.py",
+    "sha256": "2fe5ea8d0e4b08af7f21745a5e5941b73ec5a1735971948235e3b87f22c170bf"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/monitor_parallel.py",
+    "destination": "experiments/vla_followup_20261020/monitor_parallel.py",
+    "sha256": "1f3791920f1f0c244424ce4f6d5b17bf1a3f98b324e34890e5576977c3be1426"
+  },
+  {
+    "source": "/home/hengyi/vla_followup_20261020/sample_sequence.json",
+    "destination": "experiments/vla_followup_20261020/sample_sequence.json",
+    "sha256": "dd6f4322176b9cecb70696a01129f77a3fe29f84b1867122f9c4edca55d79f22"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/protocol.txt",
+    "destination": "experiments/vla_overnight_20261104/protocol.txt",
+    "sha256": "4323d490e5e10e37aebb5dc660710e8b287d00b16cdf57759d2157a311cb6fb0"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/report.py",
+    "destination": "experiments/vla_overnight_20261104/report.py",
+    "sha256": "4ab4c25a0ebaced664efe7422e59f4683ebf3f567edb346c9b4f1a87838ffeae"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/replay.py",
+    "destination": "experiments/vla_overnight_20261104/replay.py",
+    "sha256": "40b38128e551cf613434013624b4a108f13ee16b75a0072b48f1db8f85eff6f5"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/phases.py",
+    "destination": "experiments/vla_overnight_20261104/phases.py",
+    "sha256": "ca898acfe6a98622991f61acd98db3457abb73c3d0230ac6cad259be10fa6e98"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/frozen_workloads.json",
+    "destination": "experiments/vla_overnight_20261104/frozen_workloads.json",
+    "sha256": "f221c54e18825913561c0730279d106674137433fed3b93b3527e04221313427"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/launch.py",
+    "destination": "experiments/vla_overnight_20261104/launch.py",
+    "sha256": "b84d1be5d4aff6855d9af7c006c8b818f0b26355572bc530cea37efb9cf300a4"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/analyze_traces.py",
+    "destination": "experiments/vla_overnight_20261104/analyze_traces.py",
+    "sha256": "dd01686fc1cc5c6b5ec5dde8f2f3e975eb7277e98cf5fdfd0646238bddbe2325"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/supervise.py",
+    "destination": "experiments/vla_overnight_20261104/supervise.py",
+    "sha256": "e01e1d4172f2d3bbb0a421f60b7757f6f06b87ca630461e8647f78c8e80f1dec"
+  },
+  {
+    "source": "/home/hengyi/vla_overnight_20261104/core.py",
+    "destination": "experiments/vla_overnight_20261104/core.py",
+    "sha256": "1f35c656bd6aa00f15349e646e5fafee3f8bc4a9362b3c62497de88bfc20b976"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/core_mps.py",
+    "destination": "experiments/pi05_measure_20261107/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/validate.py",
+    "destination": "experiments/pi05_measure_20261107/validate.py",
+    "sha256": "62d2acfc2d7d8b33d04dc6ac3f0228d113e80ca2763eb76a0ae4220690611cee"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/infer.py",
+    "destination": "experiments/pi05_measure_20261107/infer.py",
+    "sha256": "fb332a818c288040c05526eab21d1fa2264af6df21c82af3c0a35ee9cab9bed7"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/export_tables.py",
+    "destination": "experiments/pi05_measure_20261107/export_tables.py",
+    "sha256": "42c94d331900095356fc0b7906e74e38e20487ef3991b292dfbd91a43a5a7789"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/protocol_initial.json",
+    "destination": "experiments/pi05_measure_20261107/protocol_initial.json",
+    "sha256": "d6cfc11ecbf004d793680cd6ff878f805cd4c0c6e625a4b7d18a8fadd94e65df"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/report.py",
+    "destination": "experiments/pi05_measure_20261107/report.py",
+    "sha256": "b6b0bac17fbf7c5ed8bdcba053395416c418b50faefe7d8d4204a9e042d7d8bd"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/training.py",
+    "destination": "experiments/pi05_measure_20261107/training.py",
+    "sha256": "ada30747c48faf45766f7c062dd4ff21cd516af643153470f8d817c22881afa2"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/protocol.json",
+    "destination": "experiments/pi05_measure_20261107/protocol.json",
+    "sha256": "c94b081363f990f11dcd508c0aa5c5d9f81ada3bebefa58cf06a48e86e46f150"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/monitor.py",
+    "destination": "experiments/pi05_measure_20261107/monitor.py",
+    "sha256": "c96f0fe58419aed227583d31bd41c5712dd6d1774620e61fd3dbb8ce22df7ce0"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/interference.py",
+    "destination": "experiments/pi05_measure_20261107/interference.py",
+    "sha256": "55d6a206902e34302226440985d42a215ac0ace83c33a75baf88251d3f1e3605"
+  },
+  {
+    "source": "/home/hengyi/pi05_measure_20261107/run_interference.py",
+    "destination": "experiments/pi05_measure_20261107/run_interference.py",
+    "sha256": "c2ba603fe2214f1db7469acc438c75c8f3c103f926500e1b2e4677857fd7cdc8"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/core_mps.py",
+    "destination": "experiments/pi05_optimized_20261107/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/validate.py",
+    "destination": "experiments/pi05_optimized_20261107/validate.py",
+    "sha256": "92d889418511b0b2191fd7a9887a26389d761d8882820915b50690bf2de61ae8"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/analyze_sampling.py",
+    "destination": "experiments/pi05_optimized_20261107/analyze_sampling.py",
+    "sha256": "3dff841e4069eb42f9be0b4eaf66fea25465ba980ecb8d41203e08ba164d2ad1"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/run_matrix.py",
+    "destination": "experiments/pi05_optimized_20261107/run_matrix.py",
+    "sha256": "3147fc36b2f389b2edac4508d2ad7609b83bd05c0be816750589d9b471c7e2a0"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/training_mb4.py",
+    "destination": "experiments/pi05_optimized_20261107/training_mb4.py",
+    "sha256": "a4e36b99063c99bce1718a26a514862be913cd4270a0b087e2d5bf405714ecf1"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/report.py",
+    "destination": "experiments/pi05_optimized_20261107/report.py",
+    "sha256": "fd3630aa410a115e5ef66355f5b2d12fda2c96b194fa52f4830fbc44709af221"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/matrix_worker.py",
+    "destination": "experiments/pi05_optimized_20261107/matrix_worker.py",
+    "sha256": "77b716c828db698446a48d1fb795bf5b88455d62a3642f4b23e740baccfd76fc"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/protocol.json",
+    "destination": "experiments/pi05_optimized_20261107/protocol.json",
+    "sha256": "dfd6b7123a16be330f654e6e2fa0157da120a84d2a96022f8e22e3dfcb20bdb2"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/run_replicates.py",
+    "destination": "experiments/pi05_optimized_20261107/run_replicates.py",
+    "sha256": "c79ca4cf62d346c24648de2a487931bc306bfabb4d533986556fa959e6aa08d6"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/graph_serving.py",
+    "destination": "experiments/pi05_optimized_20261107/graph_serving.py",
+    "sha256": "8ac23a8d1b95977f79330288cd66635181a63369ce8010da6768cdce6218b36b"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/monitor.py",
+    "destination": "experiments/pi05_optimized_20261107/monitor.py",
+    "sha256": "eeba8233dd0e2412b7414583813b483e43349288c00c5e3f335180beb9965778"
+  },
+  {
+    "source": "/home/hengyi/pi05_optimized_20261107/experiment1.py",
+    "destination": "experiments/pi05_optimized_20261107/experiment1.py",
+    "sha256": "6f7a32d61ba503aafc36c0b00ddc3402e9702673310a9040a51cd2900ed38729"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/core_mps.py",
+    "destination": "experiments/pi05_cache_20261107/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/parallel_learning_queue.py",
+    "destination": "experiments/pi05_cache_20261107/parallel_learning_queue.py",
+    "sha256": "30fc5bbe2dcc41c9163980dd28a706b997afcfa049b013ba83a624659c5de706"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/gpu2_queue.py",
+    "destination": "experiments/pi05_cache_20261107/gpu2_queue.py",
+    "sha256": "28086638a3864bec7d890afb35c7a30463ad4c056632a74ee05fe368ca5527b9"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/learning_mirror_queue.py",
+    "destination": "experiments/pi05_cache_20261107/learning_mirror_queue.py",
+    "sha256": "ee1b173034ddcb37fd7a87431abfc49e5d3cbc0cb3d768da8bc6548bcbf70ee1"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/precision_check.py",
+    "destination": "experiments/pi05_cache_20261107/precision_check.py",
+    "sha256": "37fda36cf1efc91f409336156a3478678e10c2eabf37305998ddb99e78ea18e6"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/evaluate_gate.py",
+    "destination": "experiments/pi05_cache_20261107/evaluate_gate.py",
+    "sha256": "83ba0fbfd444c721e648ec7a44f91b9f675b4df69aa9d201e4617a9d7a98528a"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/learning_queue.py",
+    "destination": "experiments/pi05_cache_20261107/learning_queue.py",
+    "sha256": "e08c26b26f9b0c1fc32f59ba0a2495fc6104e6d6274066467be68a376ee57873"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/cache_train.py",
+    "destination": "experiments/pi05_cache_20261107/cache_train.py",
+    "sha256": "c82b15d49e660c2ab7c90f5e47e8d67a2c02104ce2273f8258a9186fd0bd150b"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/service_kv_check.py",
+    "destination": "experiments/pi05_cache_20261107/service_kv_check.py",
+    "sha256": "7cfcfa3bb47f8c81488d17083d79ebd027dd41fe2bf49c09e0dc2d4437b0059c"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/report.py",
+    "destination": "experiments/pi05_cache_20261107/report.py",
+    "sha256": "b4293c15691746b8d18809c41dd611a825c503100e925cb67d3d85c1d54ef16d"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/build_full_report.py",
+    "destination": "experiments/pi05_cache_20261107/build_full_report.py",
+    "sha256": "ac85d60068aec6e500524a2962bf1d1c905ac22aa67bc02b49cb2c76e198b066"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/matrix_worker.py",
+    "destination": "experiments/pi05_cache_20261107/matrix_worker.py",
+    "sha256": "c80abea2022b71584a2a096aa653f3b4fbf4b598180dc57ec7ae6c03b5a129f1"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/gate_recovery.py",
+    "destination": "experiments/pi05_cache_20261107/gate_recovery.py",
+    "sha256": "b8795a29f0e462d949c776f238c580ba3d42942fe2118880c5f03bec2da0e5dc"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/gpu3_queue.py",
+    "destination": "experiments/pi05_cache_20261107/gpu3_queue.py",
+    "sha256": "45dddba206bf9cbf112b36bf412e0322e9d252972563f4cbb36057297435b671"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/protocol.json",
+    "destination": "experiments/pi05_cache_20261107/protocol.json",
+    "sha256": "0e7add1b91f4cd697d6b54ded1c3722102114da7cd5014d673d03c3979cc0ccd"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/learn.py",
+    "destination": "experiments/pi05_cache_20261107/learn.py",
+    "sha256": "fcf2cb91594d18bfc5e9647c6ff032a3ec335ad103692457d33b1f2b88fa9787"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/cache_cost.py",
+    "destination": "experiments/pi05_cache_20261107/cache_cost.py",
+    "sha256": "b8b0dcf063dac3e36aa2f7671708d849a4c0c48fe95d3d4f067e5abfa0961375"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/mirror_pilot.py",
+    "destination": "experiments/pi05_cache_20261107/mirror_pilot.py",
+    "sha256": "baceeffc4f183898ac3205da0d5c2a7d339e6220fb34b3cb48e7b0a3ad3c3dc7"
+  },
+  {
+    "source": "/home/hengyi/pi05_cache_20261107/run_mps.py",
+    "destination": "experiments/pi05_cache_20261107/run_mps.py",
+    "sha256": "d21fcc4d3fbcb4cb796cb773c25f43cefaa689185857701739e8d580dd2a3ec5"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/core_mps.py",
+    "destination": "experiments/pi05_review_20261107/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/eval_queue.py",
+    "destination": "experiments/pi05_review_20261107/eval_queue.py",
+    "sha256": "6df4e02e0afafe866f71148a0de32cb3183ad306840128ee2a7aac60a020f36a"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/eval_parallel_finish.py",
+    "destination": "experiments/pi05_review_20261107/eval_parallel_finish.py",
+    "sha256": "3757ce16ae42fae8a26ec3d6479affc1946cb95e9e316711267049f7b23963f5"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/precision_isolation.py",
+    "destination": "experiments/pi05_review_20261107/precision_isolation.py",
+    "sha256": "f7e2e2813eeec4ba218de7108c97cd3a27f332e27529f6b9b6b353a1ce3d2dfd"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/review_graph_serving.py",
+    "destination": "experiments/pi05_review_20261107/review_graph_serving.py",
+    "sha256": "7ccf54c1704f44385fe6c0031ab4f5a5312490589659ab8ab1e3ae9d77b5414d"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/matrix_worker.py",
+    "destination": "experiments/pi05_review_20261107/matrix_worker.py",
+    "sha256": "6b09821242172b71e05b7279db58cd7ffecc776bbb0fa69d272cfbe7d6b590b2"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/telemetry.py",
+    "destination": "experiments/pi05_review_20261107/telemetry.py",
+    "sha256": "2ce5a17b85965cce766c1ba76c4c72aa91bc0fd2b2e2da0a16acba41187df831"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/numerical_review.py",
+    "destination": "experiments/pi05_review_20261107/numerical_review.py",
+    "sha256": "d0ce1dab091429e52ec1596c43747113197aee2d378f45215ba5ed0cf233daf8"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/precision_queue.py",
+    "destination": "experiments/pi05_review_20261107/precision_queue.py",
+    "sha256": "839cc3caaf85071fd138b2445aac4d15a75a6168ea8e259d7c065033e41b4ec1"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/protocol.json",
+    "destination": "experiments/pi05_review_20261107/protocol.json",
+    "sha256": "2acf82018d6bf8173f5f1b6c73ec56f914d49b4e341dbac8e04dae2e835c87b6"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/evaluate_review.py",
+    "destination": "experiments/pi05_review_20261107/evaluate_review.py",
+    "sha256": "78833da46c24164223de24ba70f61202745cd1f490e46efa1090539588e56b3d"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/openloop_review.py",
+    "destination": "experiments/pi05_review_20261107/openloop_review.py",
+    "sha256": "69b5c46817e868d644d3b94afe16442cd0d4404c40add64a75c01a18b9047648"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/openloop_queue.py",
+    "destination": "experiments/pi05_review_20261107/openloop_queue.py",
+    "sha256": "40adb936b6720127f21de2a2fdb9d1630774dbdb0b9cc8e7f34c55a7b21d3415"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/run_mps.py",
+    "destination": "experiments/pi05_review_20261107/run_mps.py",
+    "sha256": "390fe6fee7b84b4cedd040a5ab24d83320db4df68e646a0ce5a5b6d6d074e238"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_20261107/summarize.py",
+    "destination": "experiments/pi05_review_20261107/summarize.py",
+    "sha256": "8d57835e24163c09fc8766597e23d3730d20814ac2b0dab0d274c8ce1dbcf9b2"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_input_20261107/core_mps.py",
+    "destination": "experiments/pi05_review_input_20261107/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_input_20261107/matrix_worker.py",
+    "destination": "experiments/pi05_review_input_20261107/matrix_worker.py",
+    "sha256": "3ab5b02f28ad516449dd2cda3a5b50b64e5e2c6719d24fdfc769047f9b3fbc20"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_input_20261107/launch_probe.py",
+    "destination": "experiments/pi05_review_input_20261107/launch_probe.py",
+    "sha256": "b3e09aefcc7d2506030b387abc4dba05c36851682d70e7b4f64c19338b35cbcc"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_input_20261107/input_graph_serving.py",
+    "destination": "experiments/pi05_review_input_20261107/input_graph_serving.py",
+    "sha256": "5ce35064c6c15fe657ff4e4051c3d2a691f0ca66c844b6c7730fa035bd093357"
+  },
+  {
+    "source": "/home/hengyi/pi05_review_input_20261107/run_mps.py",
+    "destination": "experiments/pi05_review_input_20261107/run_mps.py",
+    "sha256": "800f7b5ddd041cd19de3e9ad20415e59b320e1ce5ffdf8f7f7da0e3847e8c7be"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/core_mps.py",
+    "destination": "experiments/pi05_stability_round2/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/train_worker.py",
+    "destination": "experiments/pi05_stability_round2/train_worker.py",
+    "sha256": "f4894b2bc31452652e19542db0143856ada6c938ce663c864bee00796d2191c5"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/report.py",
+    "destination": "experiments/pi05_stability_round2/report.py",
+    "sha256": "85194eda5e492b42be65692661380d46639252ea636255cc72a7bf04c6428b87"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/matrix_worker.py",
+    "destination": "experiments/pi05_stability_round2/matrix_worker.py",
+    "sha256": "24a8ad10f9245d9a33b28732622f09c7013fa20d7516083edc9abf9be01de0a3"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/pinned_serving.py",
+    "destination": "experiments/pi05_stability_round2/pinned_serving.py",
+    "sha256": "e9eb7d852e628e408d493495e62c1ce91be22d2a09aacdecf81e8a273765ff11"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/protocol.json",
+    "destination": "experiments/pi05_stability_round2/protocol.json",
+    "sha256": "a5cdfe3c3c741c31a060346fff2f97ad53e5bf1dd5e526755bbe36e5aaddd658"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/run_transfer.py",
+    "destination": "experiments/pi05_stability_round2/run_transfer.py",
+    "sha256": "76dc7371c54fd44f8c341cedb713162db395e033b52f5d0546dcaa5f98377104"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/cost_report.py",
+    "destination": "experiments/pi05_stability_round2/cost_report.py",
+    "sha256": "6951d643e09b9802bcc88c822d8ae546ff5fbeb40f081e8f4426671931a5384b"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/scheduler.py",
+    "destination": "experiments/pi05_stability_round2/scheduler.py",
+    "sha256": "1b1538008d280cb348579f455614f21fa3da4969b1d95605875dedff837fadae"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/common.py",
+    "destination": "experiments/pi05_stability_round2/common.py",
+    "sha256": "a81241f52119546129a224667321c2b560440342b3da4db9a56d5aba15d5eb38"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/eval_worker.py",
+    "destination": "experiments/pi05_stability_round2/eval_worker.py",
+    "sha256": "263b8b80baf196d95f55f0b3d57db6f7b68f646aa11faa45a2d5c2455b25e562"
+  },
+  {
+    "source": "/home/hengyi/pi05_stability_round2/preflight.py",
+    "destination": "experiments/pi05_stability_round2/preflight.py",
+    "sha256": "28cef44036ecf45bd1bb63daae32f4ebbcc12f3ef07a23526170bd6afd38f310"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/audit_capacity.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/audit_capacity.py",
+    "sha256": "b38c27dab3c95532ce6c27a2842433f43a93041395515262e5969378f3e9d7c9"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/worker.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/worker.py",
+    "sha256": "9429495a61b8a376ede54612e9b77bd93a9c7a2b0445f931fe1d80d32240551d"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/server.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/server.py",
+    "sha256": "48b3587369dff226fd30ad5d94ce3473aec2d492d7a1bfb29d320dec7f3d98b9"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/sequence.json",
+    "destination": "experiments/pi05_a1_baseline_20261108/sequence.json",
+    "sha256": "f5caa075197696bdb0b4f7709bdcd805a9886e7e462b83a8fc8c671a855db75f"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/run_suite.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/run_suite.py",
+    "sha256": "8a03c2118c88d5ebfc4825de7972d3d271f197208c63ced82b7e3b6abb00468b"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/report.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/report.py",
+    "sha256": "3c14ba1a4c26afa9759cf873de2cea8a239f0962ba3536402a0ff4418fc3905d"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/protocol.json",
+    "destination": "experiments/pi05_a1_baseline_20261108/protocol.json",
+    "sha256": "519f3a9488abcf32b745307e6068c5980d73237a01a326ed2a842b99a1822983"
+  },
+  {
+    "source": "/home/hengyi/pi05_a1_baseline_20261108/trace_serving.py",
+    "destination": "experiments/pi05_a1_baseline_20261108/trace_serving.py",
+    "sha256": "c7790bdbbaf66ddb8729efac9992b7d7621984f3981ac6dc2ff8152a73987b65"
+  },
+  {
+    "source": "/home/hengyi/pi05_streaming_20261108/report.py",
+    "destination": "experiments/pi05_streaming_20261108/report.py",
+    "sha256": "bb01d492cf10eaf1c283adaf04dfc89eabb99cff9be090a3537b977a716e0ca8"
+  },
+  {
+    "source": "/home/hengyi/pi05_streaming_20261108/run_stream_suite.py",
+    "destination": "experiments/pi05_streaming_20261108/run_stream_suite.py",
+    "sha256": "287b1a9d600c944bb9cacf891480bf25ac623fd7cf05b51f9e0f79d4fe5015dd"
+  },
+  {
+    "source": "/home/hengyi/pi05_streaming_20261108/protocol.json",
+    "destination": "experiments/pi05_streaming_20261108/protocol.json",
+    "sha256": "08de87326395a5d9ef069a30265e09732866c0bc8e4746ffca5105a39490bdaf"
+  },
+  {
+    "source": "/home/hengyi/pi05_streaming_20261108/stream_train.py",
+    "destination": "experiments/pi05_streaming_20261108/stream_train.py",
+    "sha256": "fc48c1ad5e35903181a3e43d92f50254b0ee5ef95676ba015336fd6ce91b634b"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/core_mps.py",
+    "destination": "experiments/pi05_lora_lr_20261108/core_mps.py",
+    "sha256": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/perturbations.py",
+    "destination": "experiments/pi05_lora_lr_20261108/perturbations.py",
+    "sha256": "6263528d6b82e0d583da5b0e8a0e7ac022b14798174271e3defdfc5539f8f9d0"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/train_cached.py",
+    "destination": "experiments/pi05_lora_lr_20261108/train_cached.py",
+    "sha256": "4f0479daaf74641efd8587f906665aba6ea486fd9f2cb7469c2af1b0c042797c"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/queue_hooks.py",
+    "destination": "experiments/pi05_lora_lr_20261108/queue_hooks.py",
+    "sha256": "f2ddb3365eac2d526a311ac5358c3d9058647ab4fd051cc3f472afcd5c903b39"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/protocol.json",
+    "destination": "experiments/pi05_lora_lr_20261108/protocol.json",
+    "sha256": "effd8a1a4a97cef933d98baae17cadea1c4084768c51cbad1ef0ad296d9c6bfb"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/cache_engine.py",
+    "destination": "experiments/pi05_lora_lr_20261108/cache_engine.py",
+    "sha256": "3668f14bd75fda2a3fb1a17d1b275d57901382de299dcdb5b958304f7004b349"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/common.py",
+    "destination": "experiments/pi05_lora_lr_20261108/common.py",
+    "sha256": "4eccd16f29d4edb8c8b8c355d6f969f63f1c19042714bce6c6bbd53c5c8c058d"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/eval_worker.py",
+    "destination": "experiments/pi05_lora_lr_20261108/eval_worker.py",
+    "sha256": "0e324d331022ea7815f208305f2d8056f70c1a3fad0b55322a4da4c99e949ce1"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/sequences/20261108.json",
+    "destination": "experiments/pi05_lora_lr_20261108/sequences/20261108.json",
+    "sha256": "44a5fdd2ef61a24cbabfb6f5e2b5faa975795bf5bdfd073e62a7c6fa011e182c"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/sequences/20261109.json",
+    "destination": "experiments/pi05_lora_lr_20261108/sequences/20261109.json",
+    "sha256": "66fcfe9dc49d22f73eec40894b96bf4b3a6e0d4fc2e2da51c3b6f1ea4c592e35"
+  },
+  {
+    "source": "/home/hengyi/pi05_lora_lr_20261108/sequences/20261110.json",
+    "destination": "experiments/pi05_lora_lr_20261108/sequences/20261110.json",
+    "sha256": "a537aa37b3932f361632d47eab4869dd125264870b1ed5194cb08c5ac8a5ca59"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/train.py",
+    "destination": "experiments/pi05_overnight_20261108/train.py",
+    "sha256": "bb362c5e20d568c9aa0b084d66f4c72d4d5b61b526a997e974b5a29598ebc5ea"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tail_train.py",
+    "destination": "experiments/pi05_overnight_20261108/tail_train.py",
+    "sha256": "0591241e64da1d9276102633ca1a2befad8a63c065718be25282ddc6ff408d9a"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/candidates.json",
+    "destination": "experiments/pi05_overnight_20261108/candidates.json",
+    "sha256": "f46091b72695e27f487bce9d65df2ce9d53c1ef0ad39cdc767e718731ce86089"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tail_run.py",
+    "destination": "experiments/pi05_overnight_20261108/tail_run.py",
+    "sha256": "dac4b8d64be049459826a0a02f75e090cfe81e77131dbcc4d5d0513b4d54239d"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/report.py",
+    "destination": "experiments/pi05_overnight_20261108/report.py",
+    "sha256": "dbfdebea73a693cf2efbd2340eba7f8d4776b87de1c15fa10b70e69dc8299c63"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/queue_hooks.py",
+    "destination": "experiments/pi05_overnight_20261108/queue_hooks.py",
+    "sha256": "1c981c05d091a8bf1ce596ed798ee2efac6abce84fdd820d572d8e038ad4821b"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/protocol.json",
+    "destination": "experiments/pi05_overnight_20261108/protocol.json",
+    "sha256": "43c1382bd6f3a6ed9acd4b87af04de9fca013e4d19e260ce87a77262b3318299"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/sequence_2000_s08.json",
+    "destination": "experiments/pi05_overnight_20261108/sequence_2000_s08.json",
+    "sha256": "37ccbeb4acbced0635445ac22e8419f2fc61c42dd37ab1db541ed9659df6234f"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/camera_shift_2.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/camera_shift_2.json",
+    "sha256": "f4a210b469cb9a3b7e3f770e079618a67111dcb68bb527f6bf1ab2d62de90151"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/colorcast_2.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/colorcast_2.json",
+    "sha256": "54527a55a4d02daa2a7ef4915b3ad44b24120fe0ee51a9199ce0f638bcc8b0fc"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/camera_shift_1.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/camera_shift_1.json",
+    "sha256": "2b4053f0b74bf4d31513ef5834c144d679b7d0547f36798e95d08217fb358c8a"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/colorcast_1.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/colorcast_1.json",
+    "sha256": "1557a8ef10b911c34d3ca9b47c5a213407cc974cb3faad99f0aeae9d8a6e43fd"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/colorcast_0.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/colorcast_0.json",
+    "sha256": "f88607c61053b43c4aa6dee89de4061f49d4470bc257b1124368daffff1d6225"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/lowlight_0.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/lowlight_0.json",
+    "sha256": "54d8204345de68343ced6119d353d57c3c0f24cd5edc2a849d9c6b548626b773"
+  },
+  {
+    "source": "/home/hengyi/pi05_overnight_20261108/tasks/camera_shift_0.json",
+    "destination": "experiments/pi05_overnight_20261108/tasks/camera_shift_0.json",
+    "sha256": "081dc0ee42259567f772d62007cc6c5e3e66526d1884c7b910c9c0b1dfc85956"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/perturbations.py",
+    "destination": "experiments/pi05_extended_20261109/perturbations.py",
+    "sha256": "c8c0d11219f7628ee4aa122824ab722437cfdc66b067e6199021b63f33444a8b"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/task_samples.py",
+    "destination": "experiments/pi05_extended_20261109/task_samples.py",
+    "sha256": "bb97efbd62418c95a8324d1fd633d397356327e22462c2e6a9456427692a1576"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/prepare.py",
+    "destination": "experiments/pi05_extended_20261109/prepare.py",
+    "sha256": "431564d013d13256fa4b3c08b46d3592ad101d7d95ce836c37eb08defeb454aa"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/train_cached.py",
+    "destination": "experiments/pi05_extended_20261109/train_cached.py",
+    "sha256": "94406b3bc9c5a83b4897035b8a6dea3208f9e7e93f609d52a1bb410d9a6b0c41"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/report.py",
+    "destination": "experiments/pi05_extended_20261109/report.py",
+    "sha256": "28524a518ef300b35b509d835c659b0283e759d6ffa46ab10face0955fef3b46"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/queue_hooks.py",
+    "destination": "experiments/pi05_extended_20261109/queue_hooks.py",
+    "sha256": "9d8ba3bd04fa275f70b71b6d5ac60f1484ba66325bcf15325d9e83c3fd840ead"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/protocol.json",
+    "destination": "experiments/pi05_extended_20261109/protocol.json",
+    "sha256": "90e82e15d18b424c2bcec5efe935fcea884a6cc0433c7ca80fd4e60e001a1822"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/cache_engine.py",
+    "destination": "experiments/pi05_extended_20261109/cache_engine.py",
+    "sha256": "9762ee3df573fab400619b750ce924c1e77a219062efa49413364e1c3d488753"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/common.py",
+    "destination": "experiments/pi05_extended_20261109/common.py",
+    "sha256": "68844e8d5ba7e45a980cb878ffb940cf32db85eb23609d482e595afcd218c2a0"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/eval_worker.py",
+    "destination": "experiments/pi05_extended_20261109/eval_worker.py",
+    "sha256": "1ad4a6c2942a50c21998aa76089530582f3498f7a7347ff56c98eac2033c9fca"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/book_20261108_2000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/book_20261108_2000.json",
+    "sha256": "c7ce9e7f1dd284035a382c77de3873d663050ecc78248104106305169f6f1e2d"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/microwave_20261108_4000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/microwave_20261108_4000.json",
+    "sha256": "02e5ee026ff70ddc7edd0f18bd4be8c2b632aac5c958ee8bd0eea01a93df1f2f"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261108_2000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261108_2000.json",
+    "sha256": "37ccbeb4acbced0635445ac22e8419f2fc61c42dd37ab1db541ed9659df6234f"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261109_4000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261109_4000.json",
+    "sha256": "0ef0b0428315e502de66cf40b3a22c9a15b05f69e3e11e225f7ad541938badc9"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261110_4000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261110_4000.json",
+    "sha256": "ce3f328e1c1d0141a283e8e82caecd8a662fcae5bee2552ebedbc3d64daf708e"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/book_20261108_4000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/book_20261108_4000.json",
+    "sha256": "07628979113f9cd835bfc859a9916e7e590b0cbe553b4a82f9fd42459d1364ad"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/microwave_20261108_2000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/microwave_20261108_2000.json",
+    "sha256": "b7c755c8fdff0d07f45a13858d9e817c600dfaa0fa9808132e0c8307ab84e3ee"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261109_2000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261109_2000.json",
+    "sha256": "49b709d1bfe5dc3a0f81ffa9623f89bd6c0b6efb1db8e36cf900161ad1bfd452"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261110_2000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261110_2000.json",
+    "sha256": "fdd695f2fbae150df2338f6d7905b8caf5fc9c3a5b4fd84c85546a373d55b474"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261108_4000.json",
+    "destination": "experiments/pi05_extended_20261109/sequences/drawer_20261108_4000.json",
+    "sha256": "280276d2e55dd4d24dfe71a7f14262922ac9bb844db088b731bcc90e2632f4b8"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/splits/drawer.json",
+    "destination": "experiments/pi05_extended_20261109/splits/drawer.json",
+    "sha256": "ce60233a0b9082f48e4c523eaf266d416212dc2df10d24a5e90bd259af44c435"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/splits/book.json",
+    "destination": "experiments/pi05_extended_20261109/splits/book.json",
+    "sha256": "4c83314396d1857f7ca3112ebc619e80f0a6d2a6d5f20a99441497e5816aa545"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/splits/microwave.json",
+    "destination": "experiments/pi05_extended_20261109/splits/microwave.json",
+    "sha256": "42e3c0a2cbacde9c9f64b27ceb5de9b33f823308ebb42b09eeb8a3adeaca659f"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/book_1.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/book_1.json",
+    "sha256": "1b79a7fd57ea07d5a0e5ea1adcefa577bd3b066eb377d9e180f10e19ed4b5acd"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/book_0.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/book_0.json",
+    "sha256": "6b0933d2ae57651c22646447104892979ab22f9c581d4358f63c91af91a46ff2"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/microwave_0.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/microwave_0.json",
+    "sha256": "4ca0ca170320b17dd68976cf66cca050cc1986e21197910c9a11d53019c9ee4b"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/drawer_shift_0.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/drawer_shift_0.json",
+    "sha256": "4957e525a8f6a42ac8a34b8217eb1ea57a302846a9150daa24d6b0bad6ab2aec"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/microwave_2.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/microwave_2.json",
+    "sha256": "c02decd7a84ceaebe5cf972c5cf529300385fbfa3123dcca2c5006b81bf1da8a"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/microwave_1.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/microwave_1.json",
+    "sha256": "29442abee02809ff5b1268f83674f64a72e1ec0ba34f7ed7b73f1359e3e36d8d"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/drawer_lowlight_0.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/drawer_lowlight_0.json",
+    "sha256": "3167b0b8b35f2f7d8b8572534b18e1623b2d61d885ff868d5929e2a5760c6a26"
+  },
+  {
+    "source": "/home/hengyi/pi05_extended_20261109/tasks/book_2.json",
+    "destination": "experiments/pi05_extended_20261109/tasks/book_2.json",
+    "sha256": "bfceece0c52aa3bef10a10446f07edd03c31d3d46e62214182a22a78d2b30479"
+  }
+]

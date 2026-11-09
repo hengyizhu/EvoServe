@@ -1,0 +1,16 @@
+{
+  "repo": "RLinf/RLinf-Pi05-LIBERO-130-fullshot-SFT",
+  "revision": "6222623f635769bfc73c9472e29fab9b7fd8e027",
+  "files": [
+    {
+      "path": "model.safetensors",
+      "bytes": 7473091464,
+      "sha256": "4d9089c941793f170b625c2ed0ac7a3aa09b6f103e52dbbc82e67301529d6683"
+    },
+    {
+      "path": "physical-intelligence/libero/norm_stats.json",
+      "bytes": 4507,
+      "sha256": "dae37d79a22108af83df9189c6710a3ec8e077d65b28e34bdf1da724e5ae30f1"
+    }
+  ]
+}

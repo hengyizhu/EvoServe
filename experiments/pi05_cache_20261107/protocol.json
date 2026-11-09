@@ -1,0 +1,48 @@
+{
+  "learning": {
+    "variants": {
+      "a": "augmentation on, arbitrary starts",
+      "b": "augmentation off, arbitrary starts",
+      "c": "augmentation off, floor start to multiple of5"
+    },
+    "steps": 1000,
+    "microbatch": 4,
+    "accumulation": 2,
+    "main_seed": 20261107,
+    "additional_seeds": {
+      "a": 20261108,
+      "c": 20261108
+    },
+    "candidate_order": [
+      "fixed brightness0.35 drawer",
+      "fixed horizontal mirror drawer brightness1.0"
+    ],
+    "gate": "parent <60% on complete50 fixed initialstates0..49, all screening results retained",
+    "history_task": 0,
+    "adaptation_task": 3,
+    "eval_denoise_steps": 5,
+    "serving_denoise_steps": 10
+  },
+  "cache": {
+    "single_sample_bytes": 17842176,
+    "host": "pinned",
+    "export": "asynchronous D2H after prefix event; guard graph buffer reuse",
+    "period_ms": 250,
+    "deadline_ms": 250,
+    "measured_requests_per_condition": 500
+  },
+  "prototype": {
+    "samples": 64,
+    "host_cache_population_excluded": true,
+    "H2D_and_CPU_batch_assembly_included": true,
+    "mps30_train": "24 visible SMs expected",
+    "inference_active_thread_percentage": 100,
+    "period_ms": 250,
+    "deadline_ms": 250,
+    "replicates": 3,
+    "duration_s_each": 60,
+    "numerical_parity_warning": "BF16 B1-cache vs B4-recompute gradient relativeL2 7.165%; FP32 diagnostic 5.644e-6; performance remains original precision"
+  },
+  "weights": "original saved parent unchanged; new learning deltas separate",
+  "root": "/home/hengyi/pi05_cache_20261107"
+}

@@ -1,0 +1,77 @@
+{
+  "created_at": "2026-10-20T16:12:24.379791-04:00",
+  "scope": [
+    "two L1 training seeds",
+    "independent initial-state confirmation",
+    "same GPU interference"
+  ],
+  "training_seeds": [
+    20261021,
+    20261022
+  ],
+  "existing_seed": 20261020,
+  "eval_versions": [
+    "parent",
+    "original_L1_200",
+    "original_L1_1000",
+    "L1_seedA_1000",
+    "L1_seedB_1000"
+  ],
+  "eval_episodes_max": 200,
+  "benchmark": {
+    "gpu": 2,
+    "production": "immutable parent, separate process",
+    "candidate": "independent parameters and optimizer restored to original tier step 1000 before every condition",
+    "modes": [
+      "serving_only",
+      "free",
+      "priority"
+    ],
+    "training_boundary": "full microbatch; microbatch 8 includes optimizer update",
+    "load_fractions": [
+      0.3,
+      0.75
+    ],
+    "arrival_process": "fixed seeded exponential intervals, rescaled to target mean; identical across tiers, modes, repeats",
+    "warmup": {
+      "serving_requests": 30,
+      "training_updates": 8
+    },
+    "calibration": {
+      "serving_requests": 120,
+      "serving_window_requests": 40,
+      "stable_max_min_ratio": 1.2,
+      "training_only_updates": 60
+    },
+    "requests": "max(300, ceil(rate * 20 * slowest measured training step seconds / (1-load_fraction))) fixed from exclusive calibration before interference results",
+    "minimum_complete_updates": 10,
+    "repeats": 3,
+    "host_quiet_check": "repeats 2 and 3 wait for both short L1 runs; evaluation uses disjoint CPU cores",
+    "timeout": "30 seconds recorded as deadline exceeded, requests still completed; hard drain limit recorded if unfinished",
+    "memory_poll_seconds": 0.2,
+    "latency": "scheduled arrival to CPU-readable action completion, includes queueing; no device-wide sync in serving",
+    "training_throughput": "8 times completed optimizer steps wholly within workload measurement interval / interval seconds",
+    "cuda_timing": "per-request CUDA events; microbatch completion event for legal yield boundary",
+    "not_a_robot_success_measurement": true
+  },
+  "cpu_affinity": {
+    "seedA": "0-3",
+    "seedB": "4-7",
+    "serving": "8-11",
+    "benchmark_trainer": "12-15",
+    "benchmark_coordinator": "16-17",
+    "evaluation": "24-27"
+  },
+  "no_new_models_downloaded": true,
+  "sources": [
+    "https://docs.pytorch.org/docs/main/notes/cuda.html",
+    "https://docs.pytorch.org/docs/stable/benchmark_utils.html"
+  ],
+  "render_device_mapping": {
+    "EGL0": "physical CUDA GPU3",
+    "EGL3": "physical CUDA GPU0",
+    "parent_started_on": "EGL3",
+    "candidate_evaluations": "EGL0",
+    "pixel_equivalence_check": "audit/render_equivalence.json"
+  }
+}

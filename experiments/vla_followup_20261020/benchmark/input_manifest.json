@@ -1,0 +1,326 @@
+{
+  "source": "existing LIBERO demonstrations; replay inputs, not a closed-loop success evaluation",
+  "samples": [
+    {
+      "episode": 75,
+      "frame": 0,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 34,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 68,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 102,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 136,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 170,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 204,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 75,
+      "frame": 239,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 0,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 34,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 69,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 104,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 138,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 173,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 208,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 177,
+      "frame": 243,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 0,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 37,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 74,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 112,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 149,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 187,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 224,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 112,
+      "frame": 262,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 0,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 37,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 74,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 111,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 148,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 185,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 222,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 353,
+      "frame": 260,
+      "task": "put the black bowl in the bottom drawer of the cabinet and close it"
+    },
+    {
+      "episode": 39,
+      "frame": 0,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 41,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 82,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 123,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 164,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 205,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 246,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 39,
+      "frame": 287,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 0,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 38,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 76,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 114,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 152,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 190,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 228,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 118,
+      "frame": 267,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 0,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 39,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 78,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 117,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 156,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 195,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 234,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 363,
+      "frame": 274,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 0,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 48,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 96,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 145,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 193,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 242,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 290,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    },
+    {
+      "episode": 238,
+      "frame": 339,
+      "task": "put both the alphabet soup and the tomato sauce in the basket"
+    }
+  ],
+  "sha256": "d63b14d142a27195f19fbd1490ecf185ac0e5d443a9c617c430e0e13a455f1c0"
+}

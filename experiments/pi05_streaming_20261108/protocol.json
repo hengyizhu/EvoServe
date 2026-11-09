@@ -1,0 +1,63 @@
+{
+  "rates": [
+    4,
+    16
+  ],
+  "modes": [
+    "A1",
+    "A2"
+  ],
+  "allowed_gpus": [
+    0,
+    1
+  ],
+  "inference": {
+    "clients": 1,
+    "batch": 1,
+    "period_ms": 250,
+    "deadline_ms": 250,
+    "backend": "CUDA Graph",
+    "mps_training_percent": 30
+  },
+  "measurement": {
+    "seconds": 1200,
+    "windows": 4,
+    "window_seconds": 300,
+    "continuous": true
+  },
+  "training": {
+    "microbatch": 4,
+    "accumulation": 2,
+    "new_per_step": 4,
+    "replay_per_step": 4,
+    "augmentation": false,
+    "update": "full action expert + action/time projections",
+    "lr": 2.5e-05,
+    "EMA": false,
+    "prefix_path": "frozen eval/no_grad B1, same producer for A1/A2",
+    "copy_stream_priority": 0,
+    "prefetch": "next microbatch within step"
+  },
+  "new_pool": {
+    "capacity": 512,
+    "sample_with_replacement": true,
+    "evict_prefix_on_sample_eviction": true,
+    "source": "deterministic recorded-frame replay from historical target-training samples, new unique arrival ID each time",
+    "no_content_dedup": true,
+    "arrival_visibility": "independent host producer at fixed nominal times; training admits queued arrivals at step boundaries; ready and visible timestamps recorded"
+  },
+  "replay_pool": {
+    "windows": 1000,
+    "source": "historical data_split replay_windows, deduplicated by episode/start for storage",
+    "warmup": "all unique replay prefixes computed and pinned before streaming; then full recent pool warmup before measured windows"
+  },
+  "A1": "new first sampled prefix computation + pinned store; subsequent hits shared async H2D",
+  "A2": "new arriving prefix copied from precomputed producer payload into receiver pinned storage; replay same as A1",
+  "cost_boundary": {
+    "producer": "precomputed recorded service-path payloads; cost excluded per user; prior export effect +0.33ms P99 retained as prior evidence",
+    "receiver": "CPU host allocation, copy/store, sampling/batch assembly, cache turnover and H2D measured",
+    "network": "no network transport emulated; producer payload already available in host RAM"
+  },
+  "k": "complete lifetime cohorts born and evicted within measurement; sample_count includes zero; all arrival lifetimes retained",
+  "queue": "do not preempt learning; formal streaming gated on combined primary learning results and successful smoke test"
+}

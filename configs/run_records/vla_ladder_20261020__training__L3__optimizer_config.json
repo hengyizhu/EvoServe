@@ -1,0 +1,16 @@
+{
+  "optimizer": "AdamW",
+  "master_dtype": "float32",
+  "betas": [
+    0.9,
+    0.95
+  ],
+  "eps": 1e-08,
+  "lr": 2.5e-05,
+  "schedule": "linear warmup 50 steps then constant",
+  "weight_decay": 1e-10,
+  "clip_grad": 1.0,
+  "activation_checkpointing": true,
+  "loss": "mean over network horizon 10 and all 32 model action dimensions",
+  "training_precision": "original selective bf16 weights; fp32 optimizer masters and moments"
+}

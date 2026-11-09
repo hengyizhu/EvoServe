@@ -1,0 +1,134 @@
+VLA 训练—推理共执行：四卡 overnight 试验协议
+状态：实验设计，尚未执行；不包含预设性能数字。
+目标：为次日汇报提供真实的阶段干扰画像，以及共同 deadline 下的训练进度对照。
+范围：真实 GPU 推理、真实 forward/backward/optimizer；周期/期限请求回放。不是新的机器人成功率实验。
+0. 复用与执行范围
+- 复用已经通过检查的 π0.5 / RLinf / OpenPI 服务和训练入口、固定权重、现有训练数据与记录观察。
+- 从用户已有项目定位入口：`/home/hengyi/vla_ladder_20261020` 与 /home/hengyi/vla_followup_20261020；先确认它们的实际配置和可访问性，不猜测内部文件名。
+- 训练负载采用现有 L2（动作侧更新）和 L3（视觉+动作更新）配置；沿用原 precision、loss、optimizer、有效 batch、输入预处理。标签中如实写 full/action-side training，而不是未实施的 LoRA。
+- 不下载模型，不改学习算法，不新增 Astra/SAM3，不做收敛训练，不扩大模型推理 horizon、减少去噪步数或修改控制协议以制造收益。
+- 不写自定义 CUDA，不实现任意层抢占，不移植 FlexLLM/LayerLoom，不启动跨卡训练。
+- 本轮独立生产权重和候选权重，不改造共享权重；每种模式使用相同模型驻留结构。
+- 仅操作已经确认空闲的四张 RTX A6000；GPU UUID 写入 manifest。不得终止未知进程。
+1. 必须输出的三项结果
+1. 每个阶段及合法训练片段的耗时、显存和正确性结果。
+2. 共同到达/期限工作负载下，推理 P50/P95/P99、deadline miss、完整训练更新吞吐。
+3. 推理前缀/动作阶段与训练 forward/backward 的受控重叠画像。
+数值按实测填写，零收益和失败条件同样输出。主要比较不是无控制的自由并发，而是合理的推理优先和 deadline-aware 准入。
+2. GPU 分工
+GPU	主要任务	公平性要求
+0	L2：全部五种模式、四个工作负载、三轮	每张卡内部完整配对
+1	L2：同一矩阵独立运行块	不将不同卡直接当方法差异
+2	L3：同一矩阵；再补一个 L2 高负载错峰条件	支持同卡检查 L2/L3 差异
+3	阶段重叠微基准；短正确性检查；少量 Nsight Systems 时间线	正式延迟测量不启用 profiler
+
+
+固定 CPU affinity/线程数，训练数据预取到内存或小型固定缓存，避免多卡争用数据读取和图像解码。不要在其他测量期间全局切换 MPS 设置。
+3. 预检与校准
+每张卡：
+- 20 次推理暖机、至少 100 次稳定 serving-only 请求；记录模型执行与客户端延迟。
+- 5 次完整 optimizer 暖机，30 次稳定更新；optimizer 状态已创建后记录峰值。
+- 训练和推理分开使用固定输入、噪声/时间样本和 RNG；不能在推理线程反复设置全局 seed 干扰训练。
+- 给推理标记 I_PREFIX（视觉+语言前缀）、`I_ACTION`（全部现有去噪/flow steps）、`I_POST`。
+- 给训练标记 T_FWD、`T_BWD`、`T_OPT`（含梯度处理、step、zero_grad）。
+- 校验从 forward 到 backward 之间暂停不会改变计算：同一输入流跑 5 个完整更新，与未分段路径比较 loss、梯度与最终可训练参数。记录冻结参数与生产参数校验。
+- 不在图中添加设备全局同步。片段完成由 CUDA event 或所属 stream 完成事件判定；不能用 Python 函数返回当作 GPU 已让出。
+若训练/推理放不下，记录失败并停止该负载。不得为了放下而静默更改精度、冻结范围或 offload。
+4. 真实 250 ms 配置检查（单独报告）
+当前协议如果仍是执行 5 步、20 Hz，则动作覆盖为 250 ms。
+- 先测试一个客户端、250 ms 周期与返回期限的 serving-only。
+- 推理本身不满足时，记录“原配置不具备该实时可行性”。不将后续较宽期限回放称为原机器人 20 Hz 实验。
+- 本项不改变模型、不追加动作缓存，也不把仿真暂停造成的等待当作可训练窗口。
+5. 主回放工作负载
+本部分是 GPU 机制微基准，deadline 是控制需求的参数化抽象，不是从旧同步 rollout 推导出的物理动作队列。
+- 两个模拟需求源，各自按固定周期 P 发出真实模型输入；请求数量不因前一个请求变慢而减少。
+- 依据 serving-only 校准的 mean service cost c，固定两个 nominal load：0.40 和 0.70。
+- 共同周期 P = ceil_to_50ms(2*c/rho)。多个 GPU 比较使用事先选定的共同保守 c；每个 GPU 仍报告本卡基线。c 只能来自 serving-only 校准，不根据候选模式结果调整。
+- 每请求 release = offset + k*P，`deadline = release + P`。
+- 同步模式 offsets=[0,0]；错峰模式 offsets=[0,P/2]。二者平均需求相同。
+- 所有模式接收相同输入、释放时刻、deadline。提供预测信息的模式使用同一份有限前瞻信息；此回放中的周期性信息是受控输入，不冒充真实动作队列预测器。
+- 每个条件暖机 20 秒、测量窗口 180 秒、三轮；结束后停止新到达并单列排空，最多 60 秒，超时未完成计入违约。
+- 训练吞吐只统计共同的 180 秒窗口内完成的 optimizer updates 和对应有效样本；partial accumulation 不冒充完整更新，排空期单独计。
+- P99 保留数值和样本量，首轮主比较使用 deadline miss、P95 与训练进度；不能将少数尾样本解释为稳定 P99 保证。
+四个 workload = 两种负载 × 两种相位。
+6. 五种模式（主实验）
+S0 serve_only: 只推理。
+
+S1 queue_priority_coarse: 当前就绪请求优先；队列为空时最多提交一个完整训练 microbatch（FWD+BWD），在其 GPU 完成后重新调度。保持原梯度累积与 optimizer 边界。
+
+S2 deadline_admission_coarse: 与 S1 相同训练片段，但在提交之前使用当前及下一轮期限需求进行 EDF 可行性检查；推理成本、训练成本和安全余量来自独立校准。
+
+S3 queue_priority_split: 与 S1 相同信息，合法暂停点扩展到 FWD 完成、BWD 完成、OPT 完成；反向前保留计算图，不能丢弃/重算而不计成本。
+
+S4 deadline_admission_split: S2 的同一准入规则 + S3 的同一执行切分。
+
+规则：
+- S2 与 S4 使用完全相同预测信息、成本估计与安全余量。
+- S1 与 S3 使用相同当前队列；不得延迟生成器以降低负载。
+- 推理在本轮按完整 request 执行，不改变其数学与 batching 方式。
+- 内存相同条件下，S1/S2 不得故意一次排队多个尚未开始的训练片段。
+- 每种模式从相同候选 checkpoint、optimizer 状态、数据游标开始；只在完整 optimizer 边界更新参数，保持有效 batch 与样本顺序。
+- 不在 backward hook 中 sleep；不把 action-token 拆成新训练样本；不改损失、去噪次数或训练目标。
+- 给所有方法充分但相同的预热；编译开关继承已验证配置，不为某一个模式单独编译优化。
+- S2/S4 的准入：假设候选片段占用资源至 t+T_u，随后按 EDF 推进窗口内已知/预测的推理工作，所有预计完成时间加 margin 均不超过其 deadline 才准入。不是只检查队列此刻为空。
+- margin 可取 max(10ms, calibration_p95-calibration_mean)，在全矩阵运行前冻结，不能按方法调参。
+每张主要 GPU 的基础矩阵为 5×4×3=60 组。180 秒仅是测量窗口预算，不含实现、加载、暖机和排空。
+7. 阶段重叠微基准（GPU 3）
+比较两种实际推理阶段 × 两种真实训练片段：
+	T_FWD	T_BWD
+I_PREFIX	pair 1	pair 2
+I_ACTION	pair 3	pair 4
+
+
+- 在同一进程的两个 CUDA streams 中用独立模型实例执行；互相依赖部分使用 event。不要依赖无 MPS 多进程天然并行。
+- 采用已有模型真实计算，不能用 sleep、无效 kernel 或人工 GEMM 代替。
+- 为 T_BWD 准备所需前向和激活；为 I_ACTION 准备匹配的前缀 KV。准备成本在阶段隔离微基准中单列，不能因此声称端到端加速。
+- 每对先测两项独占成本，再测联合 wall time；两种启动顺序轮换。至少每对 100 次有效试验，保留分布。
+- 不在正在读取候选权重的其他片段期间更新该权重。pair 结束后完成其剩余训练语义再进入下一试验。
+- 测 infer_slowdown = inference_pair_time / inference_alone_time；`pair_gain = (infer_alone + train_fragment_alone) / joint_wall_time`。两项均报告。
+- 同时测连续 prefix+action 的完整推理路径，校验提取后的路径输出与原 sample_actions 一致。
+- 若没有真实 overlap，Nsight Systems 显示出来并如实报告；不要用 CPU enqueue 重叠当成 GPU 并发。
+- 仅抽取少量代表区间做 Nsight Systems；Nsight Compute 的默认 kernel replay 会影响并发，今晚不做全程 NCU。
+这项提供硬件机制证据，不等同于完整训练迭代吞吐或新的机器人任务成功率。
+8. 输出格式
+manifest.json: 代码/权重/数据引用、模块范围、精度、GPU UUID、控制协议、周期、margin、线程绑定、编译状态。
+
+requests.csv:
+run_id, gpu_uuid, policy, workload, request_id, client_id, nominal_release_ns, actual_enqueue_ns, start_ns, finish_ns, deadline_ns, status
+
+train_segments.csv:
+run_id, policy, iteration_id, microbatch_id, segment_kind, cpu_submit_ns, gpu_done_ns, wall_ms, optimizer_completed, memory_allocated, memory_reserved
+
+summary.csv:
+gpu_uuid, profile, policy, load, phase_pattern, repeat, n_requests, p50_ms, p95_ms, p99_ms, deadline_miss_rate, unfinished, completed_updates, effective_samples_per_s, train_retention, peak_device_gib, policy_overhead_ms
+
+phase_pairs.csv:
+inference_stage, training_stage, repeat, inference_alone_ms, training_alone_ms, joint_ms, inference_pair_ms, inference_slowdown, pair_gain
+
+correctness.json: 比较参考与切分执行的 loss、梯度、参数；生产权重隔离；请求总数与未完成计数。
+
+生成三张独立图：
+1. 各片段耗时与阶段干扰热图（推理延迟和共同执行效率分开）。
+2. deadline miss rate–训练吞吐折中图，标注同卡匹配 baseline。
+3. 代表性时间线：release、deadline、推理阶段、训练 FWD/BWD/OPT。
+REPORT.md: 一页实测结论，清楚区分观察到的变化、尚未测量的真实闭环产出、实现失败或零收益配置。
+9. 止损和降级
+- 必交付：S0/S1 的新基线、合法分段成本、完整训练正确性、阶段/服务统计。
+- 优先新增：S2/S4 的有限前瞻准入；FWD/BWD 分段。不要为一夜结果重写 autograd 引擎。
+- 阶段函数无法安全分离时，保留完整推理+实际训练微基准，报告阶段提取未完成；不生成伪造子阶段测量。
+- 某工作负载 S0 已不可行，保留该行，不能据此将训练违约归因于共服务；在达标比较中单独标记。
+- 不开展参数搜索，不以结果更好为理由扩大 deadline 或改变频率。
+- 不保存大规模优化器快照；使用已有父权重+内存重置，实测磁盘产物上限建议 5 GB；保留所有原实验，不删除用户文件。
+- 收官后关闭本批服务，保存实际未完成项，不自动启动下一批。
+10. 明天可以报告什么
+可以报告：真实执行成本、同期限下推理违约和训练进度、有限前瞻与合法切分的消融、特定阶段配对是否互补。
+不能由本轮自动推出：连续机器人控制质量、任务成功率提高、完整在线持续学习已实现、超过 FlexLLM/LayerLoom/Armory/Robion 的端到端结果。
+方法参照
+- Armory: https://actionchunkscheduling.github.io/
+- FlexLLM (NSDI 2026): https://www.usenix.org/conference/nsdi26/presentation/oliaro
+- Robion: https://arxiv.org/html/2609.12075v1
+- LayerLoom: https://arxiv.org/html/2611.00652v1
+- OpenPI PyTorch model: https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/models_pytorch/pi0_pytorch.py
+- PyTorch gradient accumulation: https://docs.pytorch.org/docs/2.9/notes/amp_examples.html
+- CUDA async/streams: https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html
+- Nsight Compute profiling: https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html

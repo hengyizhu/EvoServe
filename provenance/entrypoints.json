@@ -1,0 +1,1345 @@
+[
+  {
+    "entry": "pi05_a1_baseline_20261108/audit_capacity.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_a1_baseline_20261108/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_a1_baseline_20261108/run_suite.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_a1_baseline_20261108/server.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_a1_baseline_20261108/trace_serving.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_a1_baseline_20261108/worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--mode"
+        ],
+        "choices": "['A0', 'A1', 'A2']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--phase"
+        ],
+        "choices": "['solo', 'co', 'preflight']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_cache_20261107/build_full_report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/cache_cost.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/cache_train.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/evaluate_gate.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--task"
+        ],
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--start"
+        ],
+        "type": "int",
+        "default": "0"
+      },
+      {
+        "flags": [
+          "--end"
+        ],
+        "type": "int",
+        "default": "50"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_cache_20261107/gate_recovery.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/gpu2_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/gpu3_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/learn.py",
+    "arguments": [
+      {
+        "flags": [
+          "--variant"
+        ],
+        "choices": "['a', 'b', 'c']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "default": "20261107"
+      },
+      {
+        "flags": [
+          "--steps"
+        ],
+        "type": "int",
+        "default": "1000"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_cache_20261107/learning_mirror_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/learning_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/matrix_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_cache_20261107/mirror_pilot.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/parallel_learning_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/precision_check.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/run_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_cache_20261107/service_kv_check.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/cache_engine.py",
+    "arguments": [
+      {
+        "flags": [
+          "--mode"
+        ],
+        "choices": "['A0', 'A1', 'A2']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--phase"
+        ],
+        "choices": "['solo', 'co', 'preflight']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "default": "20261108"
+      },
+      {
+        "flags": [
+          "--lr"
+        ],
+        "type": "float",
+        "default": "0.0001"
+      },
+      {
+        "flags": [
+          "--family"
+        ],
+        "default": "'lora32_heads'"
+      },
+      {
+        "flags": [
+          "--sequence"
+        ]
+      },
+      {
+        "flags": [
+          "--perturb"
+        ]
+      },
+      {
+        "flags": [
+          "--split"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_extended_20261109/common.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/eval_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--task"
+        ],
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--resume"
+        ]
+      },
+      {
+        "flags": [
+          "--perturb"
+        ]
+      },
+      {
+        "flags": [
+          "--adapt-task"
+        ],
+        "type": "int",
+        "default": "3"
+      },
+      {
+        "flags": [
+          "--start"
+        ],
+        "type": "int",
+        "default": "0"
+      },
+      {
+        "flags": [
+          "--end"
+        ],
+        "type": "int",
+        "default": "50"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_extended_20261109/perturbations.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/prepare.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/queue_hooks.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/task_samples.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_extended_20261109/train_cached.py",
+    "arguments": [
+      {
+        "flags": [
+          "--lr"
+        ],
+        "required": "True",
+        "type": "float"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "required": "True",
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--steps"
+        ],
+        "required": "True",
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--checkpoints"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--verify-2000"
+        ]
+      },
+      {
+        "flags": [],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/cache_engine.py",
+    "arguments": [
+      {
+        "flags": [
+          "--mode"
+        ],
+        "choices": "['A0', 'A1', 'A2']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--phase"
+        ],
+        "choices": "['solo', 'co', 'preflight']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "default": "20261108"
+      },
+      {
+        "flags": [
+          "--lr"
+        ],
+        "type": "float",
+        "default": "0.0001"
+      },
+      {
+        "flags": [
+          "--family"
+        ],
+        "default": "'lora32_heads'"
+      },
+      {
+        "flags": [
+          "--sequence"
+        ]
+      },
+      {
+        "flags": [
+          "--perturb"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/common.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/eval_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--task"
+        ],
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--resume"
+        ]
+      },
+      {
+        "flags": [
+          "--perturb"
+        ]
+      },
+      {
+        "flags": [
+          "--start"
+        ],
+        "type": "int",
+        "default": "0"
+      },
+      {
+        "flags": [
+          "--end"
+        ],
+        "type": "int",
+        "default": "50"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/perturbations.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/queue_hooks.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_lora_lr_20261108/train_cached.py",
+    "arguments": [
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--screen"
+        ]
+      },
+      {
+        "flags": [
+          "--lr"
+        ],
+        "type": "float"
+      },
+      {
+        "flags": [
+          "--job"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_measure_20261107/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/export_tables.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/infer.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/interference.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_measure_20261107/monitor.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/run_interference.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/training.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_measure_20261107/validate.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/analyze_sampling.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/experiment1.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/graph_serving.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/matrix_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_optimized_20261107/monitor.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/run_matrix.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/run_replicates.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/training_mb4.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_optimized_20261107/validate.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_overnight_20261108/queue_hooks.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_overnight_20261108/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_overnight_20261108/tail_run.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_overnight_20261108/tail_train.py",
+    "arguments": [
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_overnight_20261108/train.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--family"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--lr"
+        ],
+        "type": "float",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--steps"
+        ],
+        "type": "int",
+        "default": "1000"
+      },
+      {
+        "flags": [
+          "--perturb"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_review_20261107/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/eval_parallel_finish.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/eval_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/evaluate_review.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--task"
+        ],
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--start"
+        ],
+        "type": "int",
+        "default": "0"
+      },
+      {
+        "flags": [
+          "--end"
+        ],
+        "type": "int",
+        "default": "50"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_review_20261107/matrix_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_review_20261107/numerical_review.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/openloop_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/openloop_review.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/precision_isolation.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/precision_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/review_graph_serving.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/run_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/summarize.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_20261107/telemetry.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_input_20261107/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_input_20261107/input_graph_serving.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_input_20261107/launch_probe.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_review_input_20261107/matrix_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_review_input_20261107/run_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/common.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/core_mps.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/cost_report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/eval_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--task"
+        ],
+        "type": "int"
+      },
+      {
+        "flags": [
+          "--brightness"
+        ],
+        "type": "float",
+        "default": "1.0"
+      },
+      {
+        "flags": [
+          "--mirror"
+        ]
+      },
+      {
+        "flags": [
+          "--start"
+        ],
+        "type": "int",
+        "default": "0"
+      },
+      {
+        "flags": [
+          "--end"
+        ],
+        "type": "int",
+        "default": "50"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_stability_round2/matrix_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--role"
+        ],
+        "choices": "['server', 'train', 'segmented']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--vision"
+        ]
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_stability_round2/pinned_serving.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/preflight.py",
+    "arguments": [
+      {
+        "flags": [
+          "--kind"
+        ],
+        "choices": "['learning', 'transfer']",
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "pi05_stability_round2/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/run_transfer.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/scheduler.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_stability_round2/train_worker.py",
+    "arguments": [
+      {
+        "flags": [
+          "--family"
+        ],
+        "choices": "['full', 'lora32']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--variant"
+        ],
+        "choices": "['a', 'b']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--name"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--stage"
+        ],
+        "type": "int",
+        "default": "1"
+      },
+      {
+        "flags": [
+          "--cache"
+        ]
+      },
+      {
+        "flags": [
+          "--steps"
+        ],
+        "type": "int",
+        "default": "1000"
+      },
+      {
+        "flags": [
+          "--profile-only"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "pi05_streaming_20261108/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "pi05_streaming_20261108/run_stream_suite.py",
+    "arguments": [
+      {
+        "flags": [
+          "--preflight-only"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "pi05_streaming_20261108/stream_train.py",
+    "arguments": [
+      {
+        "flags": [
+          "--mode"
+        ],
+        "choices": "['A1', 'A2']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--rate"
+        ],
+        "type": "int",
+        "choices": "[4, 16]",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--out"
+        ],
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "vla_followup_20261020/eval_queue.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_followup_20261020/evaluate.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "vla_followup_20261020/interference.py",
+    "arguments": [
+      {
+        "flags": [
+          "--smoke"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke-free"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke-tier"
+        ],
+        "choices": "['L1', 'L2', 'L3']",
+        "default": "'L1'"
+      }
+    ]
+  },
+  {
+    "entry": "vla_followup_20261020/interference_parallel.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_followup_20261020/monitor_parallel.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_followup_20261020/render_probe.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_followup_20261020/train.py",
+    "arguments": [
+      {
+        "flags": [
+          "--tier"
+        ],
+        "choices": "['L1', 'L2', 'L3']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--preflight"
+        ]
+      },
+      {
+        "flags": [
+          "--seed"
+        ],
+        "type": "int",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--name"
+        ],
+        "required": "True"
+      }
+    ]
+  },
+  {
+    "entry": "vla_ladder_20261020/download_parent.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_ladder_20261020/evaluate.py",
+    "arguments": [
+      {
+        "flags": [
+          "--name"
+        ],
+        "default": "'parent'"
+      },
+      {
+        "flags": [
+          "--delta"
+        ]
+      },
+      {
+        "flags": [
+          "--smoke"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "vla_ladder_20261020/install_local.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_ladder_20261020/run_four_gpu.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_ladder_20261020/train.py",
+    "arguments": [
+      {
+        "flags": [
+          "--tier"
+        ],
+        "choices": "['L1', 'L2', 'L3']",
+        "required": "True"
+      },
+      {
+        "flags": [
+          "--preflight"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "vla_overnight_20261104/analyze_traces.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_overnight_20261104/core.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_overnight_20261104/launch.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_overnight_20261104/phases.py",
+    "arguments": [
+      {
+        "flags": [
+          "--trace-only"
+        ]
+      }
+    ]
+  },
+  {
+    "entry": "vla_overnight_20261104/replay.py",
+    "arguments": [
+      {
+        "flags": [
+          "--tier"
+        ],
+        "required": "True",
+        "choices": "['L2', 'L3']"
+      }
+    ]
+  },
+  {
+    "entry": "vla_overnight_20261104/report.py",
+    "arguments": []
+  },
+  {
+    "entry": "vla_overnight_20261104/supervise.py",
+    "arguments": []
+  }
+]

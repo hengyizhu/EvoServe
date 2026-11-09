@@ -1,0 +1,24 @@
+{
+  "family": "full",
+  "lr": 1e-05,
+  "schedule": "constant",
+  "EMA": 0.999,
+  "seed": 20261108,
+  "steps": 2000,
+  "perturb": {
+    "kind": "exposure",
+    "factor": 0.05
+  },
+  "cache": "complete pinned service-path cache, all training hits",
+  "trainable_numel": 430098464,
+  "sequence": "/home/hengyi/pi05_overnight_20261108/sequence_2000_s08.json",
+  "microbatch": 4,
+  "accumulation": 2,
+  "checkpoints": [
+    100,
+    250,
+    500,
+    1000,
+    2000
+  ]
+}

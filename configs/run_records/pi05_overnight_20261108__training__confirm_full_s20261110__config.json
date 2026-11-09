@@ -1,0 +1,20 @@
+{
+  "family": "full",
+  "lr": 1e-05,
+  "schedule": "constant",
+  "EMA": 0.999,
+  "seed": 20261110,
+  "steps": 1000,
+  "perturb": {
+    "kind": "exposure",
+    "factor": 0.05
+  },
+  "cache": "complete pinned service-path cache, all training hits",
+  "trainable_numel": 430098464,
+  "sequence": "/home/hengyi/pi05_lora_lr_20261108/sequences/20261110.json",
+  "microbatch": 4,
+  "accumulation": 2,
+  "checkpoints": [
+    1000
+  ]
+}

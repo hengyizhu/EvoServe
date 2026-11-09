@@ -1,0 +1,125 @@
+{
+  "backend": "Full-model CUDA Graph, prefix + ten Euler denoising steps, external timing events",
+  "graph_safety_changes": [
+    "CPU bool prefix mask construction -> same-shape GPU zeros",
+    "CPU negative mask scalar construction -> GPU scalar full",
+    "suffix scalar bool assignment -> one-element GPU fill"
+  ],
+  "numerical_gate": "Original eager raw actions on inputs 0,1,17,63 checked per batch, atol/rtol=1e-6; observed differences recorded.",
+  "weights": "Unchanged existing parent checkpoint; optimizer updates only in disposable training copies",
+  "inference_batches": [
+    1,
+    4,
+    8,
+    16
+  ],
+  "inference_warmup": 10,
+  "inference_measure": 100,
+  "training_microbatch": 4,
+  "training_accumulation": 2,
+  "effective_batch": 8,
+  "training_warmup": 10,
+  "training_measure": 50,
+  "sampling": "Same 8 observations, per-sample augmentation/noise/time seeds as microbatch1; arithmetic grouping changes BF16 numerics.",
+  "matrix": {
+    "physical_gpu_tiers": {
+      "2": "action",
+      "3": "action_vision_lora"
+    },
+    "modes": [
+      "pure",
+      "free",
+      "mps30",
+      "mps50",
+      "segmented"
+    ],
+    "workloads": [
+      [
+        1,
+        "sync"
+      ],
+      [
+        2,
+        "sync"
+      ],
+      [
+        2,
+        "staggered"
+      ],
+      [
+        4,
+        "sync"
+      ],
+      [
+        4,
+        "staggered"
+      ],
+      [
+        8,
+        "sync"
+      ],
+      [
+        8,
+        "staggered"
+      ]
+    ],
+    "client_period_s": 0.25,
+    "deadline_s": 0.25,
+    "duration_s": 30,
+    "drain_s": 5,
+    "server_batch": 1,
+    "queue": "FIFO ordered by nominal release/client id; no dynamic batching; overload and unfinished explicitly retained",
+    "per_mode_isolated_calibration_requests": 100,
+    "phase_statistics": "Requests starting and ending within training-active window; excludes drain",
+    "repeats": 1,
+    "MPS_training_cap": [
+      30,
+      50
+    ],
+    "MPS_inference_cap": 100,
+    "segmented_lookahead_periods": 2,
+    "segmented_margin_s": 0.01,
+    "drain_semantics": "Stop new dispatch after window+5s, allow already-started request to finish; training stops at window end."
+  },
+  "source_hashes": {
+    "core_mps.py": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34",
+    "analyze_sampling.py": "3dff841e4069eb42f9be0b4eaf66fea25465ba980ecb8d41203e08ba164d2ad1",
+    "run_matrix.py": "e619e53ec4bab0ac1176c16b9a0abf574e5a4b4350627c9ee68da29f35a7afae",
+    "training_mb4.py": "a4e36b99063c99bce1718a26a514862be913cd4270a0b087e2d5bf405714ecf1",
+    "matrix_worker.py": "dd0cf550ea11cd96ca79d8dbeef9175a0853a3c4448c92e0ae7532bb825dd184",
+    "graph_serving.py": "8ac23a8d1b95977f79330288cd66635181a63369ce8010da6768cdce6218b36b",
+    "experiment1.py": "6f7a32d61ba503aafc36c0b00ddc3402e9702673310a9040a51cd2900ed38729"
+  },
+  "replication": {
+    "physical_gpus": [
+      0,
+      1
+    ],
+    "conditions": 6,
+    "workloads": [
+      [
+        1,
+        "sync"
+      ]
+    ],
+    "modes": [
+      "pure",
+      "mps30",
+      "mps50"
+    ],
+    "added_when_GIST_released_cards": true
+  },
+  "final_source_hashes": {
+    "core_mps.py": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34",
+    "validate.py": "92d889418511b0b2191fd7a9887a26389d761d8882820915b50690bf2de61ae8",
+    "analyze_sampling.py": "3dff841e4069eb42f9be0b4eaf66fea25465ba980ecb8d41203e08ba164d2ad1",
+    "run_matrix.py": "3147fc36b2f389b2edac4508d2ad7609b83bd05c0be816750589d9b471c7e2a0",
+    "training_mb4.py": "a4e36b99063c99bce1718a26a514862be913cd4270a0b087e2d5bf405714ecf1",
+    "report.py": "fd3630aa410a115e5ef66355f5b2d12fda2c96b194fa52f4830fbc44709af221",
+    "matrix_worker.py": "77b716c828db698446a48d1fb795bf5b88455d62a3642f4b23e740baccfd76fc",
+    "run_replicates.py": "c79ca4cf62d346c24648de2a487931bc306bfabb4d533986556fa959e6aa08d6",
+    "graph_serving.py": "8ac23a8d1b95977f79330288cd66635181a63369ce8010da6768cdce6218b36b",
+    "monitor.py": "eeba8233dd0e2412b7414583813b483e43349288c00c5e3f335180beb9965778",
+    "experiment1.py": "6f7a32d61ba503aafc36c0b00ddc3402e9702673310a9040a51cd2900ed38729"
+  }
+}

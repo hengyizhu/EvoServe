@@ -1,0 +1,17 @@
+#!/bin/bash
+# Submit: qsub -A YOUR_PROJECT -q debug -v REPO=/path/repo,WORK=/path/work,VENV=/path/venv cluster/polaris.pbs
+#PBS -N pi05-serving-repro
+#PBS -l select=1:system=polaris
+#PBS -l place=scatter
+#PBS -l walltime=01:00:00
+#PBS -l filesystems=home:eagle
+#PBS -j oe
+set -euo pipefail
+: "${REPO:?}" "${WORK:?}" "${VENV:?}"
+cd "$REPO"
+source "$VENV/bin/activate"
+# Whole-node allocation: one launcher with all CPU threads available to bind workers.
+mpiexec -n 1 --ppn 1 --depth=64 --cpu-bind none python tools/configure_node.py --work "$WORK"
+# First generate the eager timing baseline; CUDA Graph experiment uses it for comparison.
+mpiexec -n 1 --ppn 1 --depth=64 --cpu-bind none python tools/run.py --work "$WORK" --gpu 0 --allowed-gpus 0,1,2,3 pi05_measure_20261107/infer.py
+mpiexec -n 1 --ppn 1 --depth=64 --cpu-bind none python tools/run.py --work "$WORK" --gpu 0 --allowed-gpus 0,1,2,3 pi05_optimized_20261107/experiment1.py

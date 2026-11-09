@@ -1,0 +1,27 @@
+experiment,configuration,seed,window_or_step,metric,value,note
+tail_mps30,unlimited,,1,p99_ms;slo_rate;steps_per_s,228.078397;1.00000000;3.683333,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,unlimited,,2,p99_ms;slo_rate;steps_per_s,226.073228;1.00000000;3.683333,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,unlimited,,3,p99_ms;slo_rate;steps_per_s,258.621675;0.98750000;3.666667,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,unlimited,,4,p99_ms;slo_rate;steps_per_s,226.857723;1.00000000;3.683333,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,unlimited,,5,p99_ms;slo_rate;steps_per_s,227.055333;1.00000000;3.666667,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,3/s,,1,p99_ms;slo_rate;steps_per_s,223.632024;1.00000000;3.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,3/s,,2,p99_ms;slo_rate;steps_per_s,223.731569;1.00000000;3.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,3/s,,3,p99_ms;slo_rate;steps_per_s,223.845972;0.99583333;3.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,3/s,,4,p99_ms;slo_rate;steps_per_s,223.376415;1.00000000;3.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,3/s,,5,p99_ms;slo_rate;steps_per_s,223.679116;1.00000000;3.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,2/s,,1,p99_ms;slo_rate;steps_per_s,170.261616;1.00000000;2.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,2/s,,2,p99_ms;slo_rate;steps_per_s,170.141038;1.00000000;2.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,2/s,,3,p99_ms;slo_rate;steps_per_s,170.972183;0.99583333;2.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,2/s,,4,p99_ms;slo_rate;steps_per_s,203.292178;0.99583333;2.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,2/s,,5,p99_ms;slo_rate;steps_per_s,244.300365;0.98750000;2.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,1/s,,1,p99_ms;slo_rate;steps_per_s,169.804370;1.00000000;1.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,1/s,,2,p99_ms;slo_rate;steps_per_s,170.028880;1.00000000;1.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,1/s,,3,p99_ms;slo_rate;steps_per_s,169.470239;1.00000000;1.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,1/s,,4,p99_ms;slo_rate;steps_per_s,169.342653;1.00000000;1.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+tail_mps30,1/s,,5,p99_ms;slo_rate;steps_per_s,169.509807;1.00000000;1.000000,"A6000,250ms deadline,240 requests/window,GPU2/3 idle"
+learning_2000,full,20261108,2000,adaptation_successes;history_successes,40;43,50 episodes/task; each seed separate; no augmentation; EMA0.999
+learning_2000,full,20261109,2000,adaptation_successes;history_successes,35;46,50 episodes/task; each seed separate; no augmentation; EMA0.999
+learning_2000,full,20261110,2000,adaptation_successes;history_successes,38;45,50 episodes/task; each seed separate; no augmentation; EMA0.999
+learning_2000,lora32_heads,20261108,2000,adaptation_successes;history_successes,34;44,50 episodes/task; each seed separate; no augmentation; EMA0.999
+learning_2000,lora32_heads,20261109,2000,adaptation_successes;history_successes,35;46,50 episodes/task; each seed separate; no augmentation; EMA0.999
+learning_2000,lora32_heads,20261110,2000,adaptation_successes;history_successes,36;46,50 episodes/task; each seed separate; no augmentation; EMA0.999

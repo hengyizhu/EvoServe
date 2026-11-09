@@ -1,0 +1,69 @@
+{
+  "purpose": "measurement only; no saved model changes",
+  "physical_gpu_mapping": {
+    "experiment0": 2,
+    "experiment1": 3,
+    "experiment2_action": 2,
+    "experiment2_vision_lora": 3
+  },
+  "training": {
+    "microbatch": 1,
+    "accumulation": 8,
+    "warmup": 10,
+    "measure": 50,
+    "vision_lora_rank": 16,
+    "vision_lora_targets": "SigLIP mlp.fc1/fc2",
+    "prefix_no_grad_action_only": true
+  },
+  "inference": {
+    "denoise_steps": 10,
+    "batch": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "warmup": 10,
+    "measure": 50
+  },
+  "interference": {
+    "modes": [
+      "free",
+      "segmented",
+      "mps30",
+      "mps50"
+    ],
+    "duration_seconds": 120,
+    "clients": 2,
+    "client_period_s": 1,
+    "phase_offset_s": 0.5,
+    "slo_s": 1,
+    "n_requests": 240,
+    "repeats": 1,
+    "status": "exploratory short measurement"
+  },
+  "nsys": "not found on PATH or checked standard paths; torch.profiler fallback without SM hardware metrics",
+  "checkpoint": {
+    "repo": "RLinf/RLinf-Pi05-LIBERO-130-fullshot-SFT",
+    "revision": "6222623f635769bfc73c9472e29fab9b7fd8e027",
+    "files": [
+      {
+        "path": "model.safetensors",
+        "bytes": 7473091464,
+        "sha256": "4d9089c941793f170b625c2ed0ac7a3aa09b6f103e52dbbc82e67301529d6683"
+      },
+      {
+        "path": "physical-intelligence/libero/norm_stats.json",
+        "bytes": 4507,
+        "sha256": "dae37d79a22108af83df9189c6710a3ec8e077d65b28e34bdf1da724e5ae30f1"
+      }
+    ]
+  },
+  "source_hashes": {
+    "/home/hengyi/pi05_measure_20261107/infer.py": "fb332a818c288040c05526eab21d1fa2264af6df21c82af3c0a35ee9cab9bed7",
+    "/home/hengyi/pi05_measure_20261107/report.py": "180fa86d5a3773baf500f9a4c6cd3b3f9c8b3358711809fcf90ec9e35680b8c4",
+    "/home/hengyi/pi05_measure_20261107/training.py": "ada30747c48faf45766f7c062dd4ff21cd516af643153470f8d817c22881afa2",
+    "/home/hengyi/pi05_measure_20261107/interference.py": "02a9774782b061443805922478bff53ada30aaf3a4467784b453da37f2081cb1",
+    "/home/hengyi/pi05_measure_20261107/run_interference.py": "33a74206499cc00e8fc0e797e89343acaec507d35c9d3f85c926e5e26762c1fd"
+  }
+}

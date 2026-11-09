@@ -1,0 +1,1 @@
+{"lowlight": [{"kind": "exposure", "factor": 0.05}], "camera_shift": [{"kind": "camera_shift", "fraction": 0.25}, {"kind": "camera_shift", "fraction": 0.375}, {"kind": "camera_shift", "fraction": 0.5}], "colorcast": [{"kind": "colorcast", "channels": [1, 0.15, 0.15]}, {"kind": "colorcast", "channels": [1, 0.05, 0.05]}, {"kind": "colorcast", "channels": [0.05, 1, 0.05]}]}

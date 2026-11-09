@@ -1,0 +1,86 @@
+{
+  "purpose": "measurement only; no saved model changes",
+  "physical_gpu_mapping": {
+    "experiment0": 2,
+    "experiment1": 3,
+    "experiment2_action": 2,
+    "experiment2_vision_lora": 3
+  },
+  "training": {
+    "microbatch": 1,
+    "accumulation": 8,
+    "warmup": 10,
+    "measure": 50,
+    "vision_lora_rank": 16,
+    "vision_lora_targets": "SigLIP mlp.fc1/fc2",
+    "prefix_no_grad_action_only": true
+  },
+  "inference": {
+    "denoise_steps": 10,
+    "batch": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "warmup": 10,
+    "measure": 50
+  },
+  "interference": {
+    "modes": [
+      "free",
+      "segmented",
+      "mps30",
+      "mps50"
+    ],
+    "duration_seconds": 120,
+    "clients": 2,
+    "client_period_s": 1,
+    "phase_offset_s": 0.5,
+    "slo_s": 1,
+    "n_requests": 240,
+    "repeats": 1,
+    "status": "exploratory short measurement"
+  },
+  "nsys": "not found on PATH or checked standard paths; torch.profiler fallback without SM hardware metrics",
+  "checkpoint": {
+    "repo": "RLinf/RLinf-Pi05-LIBERO-130-fullshot-SFT",
+    "revision": "6222623f635769bfc73c9472e29fab9b7fd8e027",
+    "files": [
+      {
+        "path": "model.safetensors",
+        "bytes": 7473091464,
+        "sha256": "4d9089c941793f170b625c2ed0ac7a3aa09b6f103e52dbbc82e67301529d6683"
+      },
+      {
+        "path": "physical-intelligence/libero/norm_stats.json",
+        "bytes": 4507,
+        "sha256": "dae37d79a22108af83df9189c6710a3ec8e077d65b28e34bdf1da724e5ae30f1"
+      }
+    ]
+  },
+  "source_hashes": {
+    "/home/hengyi/pi05_measure_20261107/infer.py": "fb332a818c288040c05526eab21d1fa2264af6df21c82af3c0a35ee9cab9bed7",
+    "/home/hengyi/pi05_measure_20261107/report.py": "180fa86d5a3773baf500f9a4c6cd3b3f9c8b3358711809fcf90ec9e35680b8c4",
+    "/home/hengyi/pi05_measure_20261107/training.py": "ada30747c48faf45766f7c062dd4ff21cd516af643153470f8d817c22881afa2",
+    "/home/hengyi/pi05_measure_20261107/interference.py": "02a9774782b061443805922478bff53ada30aaf3a4467784b453da37f2081cb1",
+    "/home/hengyi/pi05_measure_20261107/run_interference.py": "33a74206499cc00e8fc0e797e89343acaec507d35c9d3f85c926e5e26762c1fd"
+  },
+  "final_code_hashes": {
+    "/home/hengyi/pi05_measure_20261107/core_mps.py": "ca7ff6e4e25da7794066f1c69037cfefd2369d0af609eff98687c9cfba4dfa34",
+    "/home/hengyi/pi05_measure_20261107/validate.py": "62d2acfc2d7d8b33d04dc6ac3f0228d113e80ca2763eb76a0ae4220690611cee",
+    "/home/hengyi/pi05_measure_20261107/infer.py": "fb332a818c288040c05526eab21d1fa2264af6df21c82af3c0a35ee9cab9bed7",
+    "/home/hengyi/pi05_measure_20261107/export_tables.py": "42c94d331900095356fc0b7906e74e38e20487ef3991b292dfbd91a43a5a7789",
+    "/home/hengyi/pi05_measure_20261107/report.py": "b6b0bac17fbf7c5ed8bdcba053395416c418b50faefe7d8d4204a9e042d7d8bd",
+    "/home/hengyi/pi05_measure_20261107/training.py": "ada30747c48faf45766f7c062dd4ff21cd516af643153470f8d817c22881afa2",
+    "/home/hengyi/pi05_measure_20261107/monitor.py": "c96f0fe58419aed227583d31bd41c5712dd6d1774620e61fd3dbb8ce22df7ce0",
+    "/home/hengyi/pi05_measure_20261107/interference.py": "55d6a206902e34302226440985d42a215ac0ace83c33a75baf88251d3f1e3605",
+    "/home/hengyi/pi05_measure_20261107/run_interference.py": "c2ba603fe2214f1db7469acc438c75c8f3c103f926500e1b2e4677857fd7cdc8"
+  },
+  "instrumentation_changes": [
+    "Training preflight: match native FP32 action cast before formal timing; failed preflight retained.",
+    "MPS-only CUDA device selection moved before library import and uses UUID; first failed connections retained under failed_attempts. No completed timing records altered."
+  ],
+  "physical_mapping_note": "S4 raw gpu_uuid field contains ordinal 2/3; actual UUID mapping in hardware_inventory.json.",
+  "completed_configuration": "No existing model weights, repository code, GPU clocks, or power settings changed; measurement worker optimizer updates discarded."
+}

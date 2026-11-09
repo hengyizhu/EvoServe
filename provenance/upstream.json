@@ -1,0 +1,9 @@
+{
+  "RLinf": {
+    "url": "https://github.com/RLinf/RLinf",
+    "commit": "91a302ec50ddacd1fdabc5859b85e3661d768236",
+    "git_diff_empty": true,
+    "vendored_files": 1089,
+    "note": "Capture-safe changes are runtime substitutions in graph_serving.py, retained verbatim."
+  }
+}

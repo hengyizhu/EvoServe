@@ -1,0 +1,37 @@
+{
+  "images": {
+    "shape": [
+      64,
+      256,
+      256,
+      3
+    ],
+    "dtype": "uint8",
+    "sha256": "85d1d1cc55425d2d9c7aa6377c2aaefcc45aa5be18d21415b3ab6cc983ed0993"
+  },
+  "wrists": {
+    "shape": [
+      64,
+      256,
+      256,
+      3
+    ],
+    "dtype": "uint8",
+    "sha256": "331c24c879360dad28b8f9a2617cdae6dc33fc1c7933a120484e00d5df717b00"
+  },
+  "states": {
+    "shape": [
+      64,
+      8
+    ],
+    "dtype": "float32",
+    "sha256": "b979ca642d5c56e5ec5a6169c2232bb6a86f2b71c3bf3f7e159def16842a7a96"
+  },
+  "prompts": {
+    "shape": [
+      64
+    ],
+    "dtype": "<U67",
+    "sha256": "7c43294f99775ab435cfd12ba9fa423e2ce708040cf79802043a2d87ad00c49b"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "family": "lora32_heads",
+  "lr": 5e-05,
+  "schedule": "cosine",
+  "warmup": 50,
+  "cosine_min_fraction": 0.1,
+  "EMA": 0.999,
+  "seed": 20261108,
+  "steps": 2000,
+  "perturb": {
+    "kind": "exposure",
+    "factor": 0.05,
+    "target_prompt": "put the black bowl in the bottom drawer of the cabinet and close it"
+  },
+  "split": "/home/hengyi/pi05_extended_20261109/splits/drawer.json",
+  "sequence": "/home/hengyi/pi05_extended_20261109/sequences/drawer_20261108_2000.json",
+  "cache": "service B1 prefix; pinned host; microbatch prefetch",
+  "augmentation": false,
+  "microbatch": 4,
+  "accumulation": 2,
+  "trainable_numel": 20876320,
+  "checkpoints": [
+    2000
+  ],
+  "verify_2000": null
+}

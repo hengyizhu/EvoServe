@@ -1,0 +1,77 @@
+{
+  "allowed_gpus": [
+    0,
+    1
+  ],
+  "continue_existing_last_seed": true,
+  "family": "lora32_heads",
+  "rank": 32,
+  "alpha": 32,
+  "dropout": 0,
+  "lora_layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+  ],
+  "lora_targets": [
+    "expert1.attention.q",
+    "expert1.attention.k",
+    "expert1.attention.v",
+    "expert1.attention.o",
+    "expert1.ffn.gate",
+    "expert1.ffn.up",
+    "expert1.ffn.down"
+  ],
+  "fully_trainable": [
+    "action_in_proj",
+    "action_out_proj",
+    "time_mlp_in",
+    "time_mlp_out"
+  ],
+  "old_head_training": false,
+  "expected_trainable_numel": 20876320,
+  "screen_lrs": [
+    5e-05,
+    0.0001,
+    0.0002
+  ],
+  "screen_seed": 20261108,
+  "screen_eval": "adaptation task3 only,50 fixed episodes; final EMA checkpoint1000",
+  "confirmation_seeds": [
+    20261108,
+    20261109,
+    20261110
+  ],
+  "confirmation_eval": "adaptation50 + history50 per seed; reuse seed08 screened adaptation results and checkpoint",
+  "selection_rule": "highest adaptation success; tie lower LR",
+  "EMA": 0.999,
+  "steps": 1000,
+  "microbatch": 4,
+  "accumulation": 2,
+  "augmentation": false,
+  "brightness": 0.05,
+  "warmup_steps": 50,
+  "prefix": "precomputed frozen B1 service-path, complete pinned host cache, low-priority microbatch prefetch",
+  "prefix_reuse": "seed08 cache computed once and reused across3LRs; every LR resets trainable parameters, optimizer, EMA, step counters and diffusion-noise sequence",
+  "cache_provenance": "parent service-path prefixes for the exact training inputs, including matched low-exposure transform; not cache from old unperturbed benchmark",
+  "no_original_weights_modified": true,
+  "schedule": "50-step linear warmup, cosine decay to 10% peak at final step",
+  "constant_lr_started": false,
+  "preparation_restarted_for_cosine": true,
+  "additional_linear_targets": "37 expert1 AdaRMS ada_modulation Linear modules, including final norm"
+}

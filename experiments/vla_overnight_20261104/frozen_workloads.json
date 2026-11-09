@@ -1,0 +1,18 @@
+{
+  "common_c_s": 0.19715803904999998,
+  "common_margin_s": 0.01,
+  "periods": {
+    "0.4": 1.0,
+    "0.7": 0.6000000000000001
+  },
+  "source": "Maximum serving-only mean among GPUs 0/1/2 before candidate matrix",
+  "deadline": "release+P",
+  "lookahead": "All outstanding/current and predicted releases within next 2P; same information S2/S4",
+  "training_cost": "per-card calibration p95 for each real legal segment; same estimates for S2/S4",
+  "margin_rule": "max across GPUs of max(0.010, calibration p95-mean)",
+  "warmup_seconds": 20,
+  "measurement_seconds": 180,
+  "drain_cap_seconds": 60,
+  "repeats": 3,
+  "frozen_before_matrix": true
+}

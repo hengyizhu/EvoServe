@@ -1,0 +1,107 @@
+{
+  "purpose": "Targeted review; original artifacts immutable",
+  "created_unix": 1794111950.4056988,
+  "rollout_replay": {
+    "checkpoints": [
+      "a_seed20261107",
+      "a_seed20261108"
+    ],
+    "tasks": [
+      3,
+      0
+    ],
+    "indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "denoise_steps": 5,
+    "evaluation_seeds": "same as original per task/index",
+    "gpu": 0,
+    "cpu_cores": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "good_checkpoint_gpu_split": {
+      "task3": 0,
+      "task0": 2
+    }
+  },
+  "fixed_loss": {
+    "target": "20 windows from5 held-out episodes",
+    "history": "20 replay windows (not held-out)",
+    "paths": [
+      "native joint",
+      "split KV"
+    ],
+    "modes": [
+      "train",
+      "eval"
+    ],
+    "checkpoints": [
+      "parent",
+      "a_seed20261107",
+      "b_seed20261107",
+      "c_seed20261107",
+      "a_seed20261108",
+      "c_seed20261108"
+    ]
+  },
+  "numerics": {
+    "matched_prefix_batch": "recomputeB1 then concatenateB4 vs servingB1 cache concatenateB4",
+    "flags": [
+      "original",
+      "TF32off",
+      "TF32off and BF16 reduced precision reduction off"
+    ]
+  },
+  "serving": {
+    "gpu": 3,
+    "server_cpus": [
+      24,
+      25,
+      26,
+      27
+    ],
+    "trainer_cpus": [
+      28,
+      29,
+      30,
+      31
+    ],
+    "all_threads_pinned": true,
+    "modes": [
+      "pure",
+      "mps30_recompute",
+      "mps30_cache"
+    ],
+    "replicates": 3,
+    "seconds_each": 60,
+    "deadline_ms": 250,
+    "period_ms": 250,
+    "no_margin_or_SLO_change": true
+  },
+  "concurrent_original_eval": "GPU1 original evaluator all existing threads pinned toCPU8\u201315, computation/evaluation parameters unchanged",
+  "openloop": {
+    "samples": 20,
+    "steps": [
+      5,
+      10,
+      20
+    ],
+    "metric": "normalized action MSE first7 coordinates; not a rollout success metric"
+  }
+}

@@ -1,0 +1,1 @@
+This repository packages local VLA serving experiments and an attributed RLinf source snapshot. Third-party software retains its upstream license; see vendor/RLinf/LICENSE and provenance/upstream.json. No IG-VLA/GIST project is packaged.

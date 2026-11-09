@@ -1,0 +1,30 @@
+{
+  "allowed_gpus": [
+    0,
+    1
+  ],
+  "no_preemption": true,
+  "sequence": "b_seed20261107, exact8000sample order,1000steps",
+  "augmentation": false,
+  "update": "full action expert plus action/time projections",
+  "microbatch": 4,
+  "accumulation": 2,
+  "modes": [
+    "A0",
+    "A1",
+    "A2"
+  ],
+  "solo_steps": 1000,
+  "co_windows": 3,
+  "co_seconds": 60,
+  "period_ms": 250,
+  "deadline_ms": 250,
+  "mps_training_percent": 30,
+  "A1": "cold cache, no eviction, all first-use computation and D2H/H2D included",
+  "A2": "all3653 B1 frozen service-path prefixes precomputed, population seconds separately reported",
+  "cache_location": "complete pinned host memory; approved user override to initial all-VRAM requirement",
+  "transfer": "common lowest-priority CUDA stream(priority0), one-microbatch lookahead; CUDA Event timing per transfer plus compute wait",
+  "input_preprocessing": "identical fixed transformed dataset preloaded in pinned host RAM for all methods; timed training includes actual H2D, random noise and time construction, prefix computation as needed, backward, optimizer and cache fills",
+  "co_sequence": "starts at step0, continuous across3windows, A1 cache persists; no artificial warm-cache initialization",
+  "no_model_files_modified": true
+}

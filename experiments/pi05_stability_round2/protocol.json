@@ -1,0 +1,204 @@
+{
+  "created_utc": "2026-11-08T04:59:27.428907+00:00",
+  "parent": "/home/hengyi/vla_followup_20261020/parent/model.safetensors",
+  "learning": {
+    "families": [
+      "full",
+      "lora32"
+    ],
+    "variants": [
+      "a",
+      "b"
+    ],
+    "seeds": [
+      20261108,
+      20261109,
+      20261110
+    ],
+    "steps": 1000,
+    "save_steps": [
+      250,
+      500,
+      750,
+      1000
+    ],
+    "ema_decay": 0.999,
+    "lr": 1e-05,
+    "warmup_steps": 50,
+    "microbatch": 4,
+    "accumulation": 2,
+    "evaluation_weights": "EMA only",
+    "evaluation_denoise_steps": 5,
+    "evaluation_tasks": [
+      3,
+      0
+    ],
+    "eval_initial_states": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49
+    ],
+    "full_trainable": "action expert and action/time projections",
+    "lora_rank": 32,
+    "lora_alpha": 32,
+    "lora_dropout": 0,
+    "lora_targets": "expert1 attention Q/K/V/O and FFN gate/up/down; other base parameters frozen",
+    "prefix_mode": "frozen eval/no_grad, same B1 production path in stages1 and3",
+    "mixture": "4 adaptation +4 history windows per step",
+    "prefix_batch": 1,
+    "eval_steps": [
+      1000
+    ],
+    "lora_condition": "explicit_b_only",
+    "variants_by_family": {
+      "full": [
+        "a",
+        "b"
+      ],
+      "lora32": [
+        "b"
+      ]
+    }
+  },
+  "task_screening": {
+    "type": "fixed camera exposure decrease, train and evaluation identical uint8 pixel transform",
+    "candidate_brightness": [
+      0.2,
+      0.1,
+      0.05
+    ],
+    "gate": "complete50 fixed-state episodes success <50%; first passing candidate, all screening retained",
+    "history": "unchanged libero10 task0; parent44/50 reused"
+  },
+  "selection": {
+    "checkpoint": 1000,
+    "weights": "EMA",
+    "adaptation_min_gain_pp": 25,
+    "adaptation_absolute_floor_percent": 40,
+    "history_min_percent": 78,
+    "adaptation_seed_range_max_pp": 25,
+    "a_b_judged_separately": true,
+    "select_on_variant": "a",
+    "prefer_full_if_both_stable": true,
+    "no_stable_a_family": "do not launch stage3; report no stable configuration"
+  },
+  "transfer": {
+    "gpu": "one available GPU from 0,1",
+    "modes": [
+      "pure",
+      "mps30_recompute",
+      "mps30_cache"
+    ],
+    "windows": 5,
+    "seconds_per_window": 60,
+    "period_ms": 250,
+    "deadline_ms": 250,
+    "observation_copy": "single packed pinned-host slab to preallocated CUDA slab, one non_blocking H2D, stream ordering",
+    "cpu_cores": "GPU0: inference0-3/train4-7; GPU1: inference8-11/train12-15"
+  },
+  "stage3": {
+    "gpu_preference": [
+      0,
+      1
+    ],
+    "seeds": [
+      20261111,
+      20261112
+    ],
+    "variants": [
+      "cache",
+      "recompute"
+    ],
+    "augmentation": false,
+    "prefix_batch": 1,
+    "prefix_mode": "eval",
+    "steps": 1000,
+    "eval": "EMA final checkpoint,50adaptation+50history",
+    "cache": "bounded pinned-host LRU512 samples, hit/miss logged; identical B1 producer in both conditions"
+  },
+  "queue": {
+    "idle_memory_limit_mib": 1024,
+    "idle_utilization_limit_pct": 5,
+    "idle_stable_seconds": 90,
+    "poll_seconds": 15,
+    "never_stop_foreign_processes": true,
+    "reserve_gpu2_for_transfer": false,
+    "learning_gpu_preferences": [
+      0,
+      1
+    ],
+    "disk_floor_gib": 20,
+    "allowed_gpus": [
+      0,
+      1
+    ]
+  },
+  "gpu_allocation_note": "User reserves GPUs0,1 for this round; never launch on GPUs2,3. Transfer GPU and CPU affinity follow actual assignment.",
+  "reporting": {
+    "combine_final_full_a_b_and_e2e": true,
+    "no_separate_early_e2e_report": true
+  },
+  "cost_comparison": {
+    "families": [
+      "full",
+      "lora32"
+    ],
+    "variant": "b",
+    "seed": 20261108,
+    "steps": 30,
+    "warmup_steps": 10,
+    "microbatch": 4,
+    "accumulation": 2,
+    "EMA": 0.999,
+    "lr": 1e-05,
+    "peak_metric": "CUDA allocator allocated/reserved bytes, reset before training",
+    "priority": 12
+  }
+}
