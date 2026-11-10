@@ -1,0 +1,7 @@
+configuration,seed,steps,adaptation_successes,adaptation_episodes,history_successes,history_episodes,stable
+full,20261108,2000,40,50,43,50,True
+full,20261109,2000,35,50,46,50,True
+full,20261110,2000,38,50,45,50,True
+lora32_heads,20261108,2000,34,50,44,50,True
+lora32_heads,20261109,2000,35,50,46,50,True
+lora32_heads,20261110,2000,36,50,46,50,True

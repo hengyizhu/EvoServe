@@ -42,3 +42,6 @@ work/
 # User-requested curated experiment summaries only.
 !/results/pi05_optimized_20261107/optimized_inference.csv
 !/results/pi05_optimized_20261107/training_mb4.csv
+
+!/results/pi05_extended_20261109/learning_curves.csv
+!/results/pi05_extended_20261109/comparison_2000_three_seeds.csv
