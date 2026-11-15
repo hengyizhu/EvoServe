@@ -8,6 +8,7 @@ class Campaign:
         self.root=Path(root);self.cfg=cfg;self.repo=Path(__file__).resolve().parents[2]
         self.out=self.root/'prototype_runs';self.out.mkdir(exist_ok=True)
         self.states=self.root/'prototype_task_state';self.states.mkdir(exist_ok=True)
+        self.graph_available=False
         self.env=dict(os.environ,PYTHONPATH=str(self.repo/'prototype'),OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
         for key in list(self.env):
             if key.startswith('CUDA_MPS_') or key in ['CUDA_VISIBLE_DEVICES','EXPERT_COUNT','SLO_FEEDBACK','PI_MPS']:self.env.pop(key,None)
@@ -50,7 +51,9 @@ class Campaign:
         if rc:raise RuntimeError(f'exit {rc}: {out}/process.log')
     def preflight(self):
         name='gpu_preflight';old=read(self.states/(name+'.json'))
-        if old:return old['state']=='passed'
+        if old:
+            self.graph_available=old.get('graph_available',old['state']=='passed')
+            return old['state']=='passed'
         for attempt in [1,2]:
             out=self.out/f'{name}_{attempt}_{time.time_ns()}'
             try:
@@ -60,8 +63,9 @@ class Campaign:
                 result=read(out/'data/summary.json');assert result['state']=='passed'
                 self.record(name,'passed',raw=str(out));return True
             except Exception:
+                self.graph_available=self.graph_available or read(out/'data/graph_summary.json',{}).get('state')=='passed'
                 save(self.root/'failures'/f'prototype_{name}_{attempt}.json',dict(error=traceback.format_exc(),raw=str(out)))
-        self.record(name,'skipped',reason='GPU preflight failed twice; dependent GPU milestones not started',raw=str(out));return False
+        self.record(name,'skipped',reason='GPU preflight failed twice; dependent GPU milestones not started',graph_available=self.graph_available,raw=str(out));return False
     def setting(self,method='ours',robots=None,gpus=None,seconds=600,changes=None,**extra):
         robots=robots or [3]
         return dict(assets=self.cfg['assets'],prior=str(self.repo/'prototype/configs/learning_prior.json'),osmesa_lib=self.cfg['osmesa_lib'],gpus=gpus or [0],expert_ids=list(dict.fromkeys(robots)),robot_experts=robots,method=method,seconds=seconds,seed=self.cfg['seed'],action_budget=600,changes=changes or [],request_period_s=.25,**extra)
@@ -116,7 +120,10 @@ class Campaign:
         save(self.root/'capacity.json',result);return result
     def run(self):
         assert read(self.root/'measurements_complete.json') is not None,'Measurements must finish before prototype GPU work'
-        if not self.preflight():return
+        if not self.preflight():
+            if self.graph_available:self.capacity()
+            for name in ['M1','M2','M3']:self.record(name,'blocked',reason='GPU training preflight failed; dependent learning milestone not started')
+            return
         lowlight=[dict(expert=3,at_s=0,perturb=dict(kind='exposure',factor=.05))]
         m1=self.trial('M1_smoke',self.setting(changes=lowlight),lambda x:self.health(x,learning=True,slo=True))
         if m1['state']=='complete':

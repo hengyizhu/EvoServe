@@ -13,6 +13,7 @@ def main():
     graph=GraphModel(a.assets);graph.install(3,'3:v0')
     raw=graph.dummy();actions,_=graph.infer(raw,3,'3:v0',20261108)
     assert actions.shape==(10,7),actions.shape
+    save(out/'graph_summary.json',dict(state='passed',returned_actions=10))
     # Smoke labels only: explicitly excluded from all learning/quality results.
     labels=actions
     prefix=graph.map(lambda q:q.detach().cpu().pin_memory(),graph.prefix)
