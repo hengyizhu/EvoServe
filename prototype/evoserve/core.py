@@ -101,8 +101,10 @@ class Window:
     nbytes: int
     action_frames: tuple
     successful_episode: bool = True
+    data_source: str = 'self_success'
 
     def check(self):
+        if self.data_source not in ['self_success','operator_correction']:raise ValueError('unknown data source')
         if self.action_frames != tuple(range(self.key.frame, self.key.frame+10)):
             raise ValueError('cache/action window misalignment or incomplete window')
 
@@ -133,7 +135,7 @@ class Reservoir:
     def add(self, row):
         row.check()
         with self.lock:
-            if self.versions.get(row.expert) != row.key.version or not row.successful_episode:
+            if self.versions.get(row.expert) != row.key.version or (not row.successful_episode and row.data_source!='operator_correction'):
                 return False
             if row.nbytes > self.byte_limit or row.key in self.items:
                 return False
@@ -169,11 +171,13 @@ class ActionWindowAssembler:
         self.episode, self.version = episode, version
         self.pending = {}
         self.actions = []
+        self.versions = {}
 
-    def observe(self, frame, cache):
+    def observe(self, frame, cache, version=None):
         if frame < 0 or frame > len(self.actions) or frame in self.pending:
             raise ValueError('observation frame is invalid or duplicated')
         self.pending[frame] = cache
+        self.versions[frame] = version or self.version
 
     def execute(self, action):
         self.actions.append(action)
@@ -183,7 +187,7 @@ class ActionWindowAssembler:
         ready = []
         for start in list(self.pending):
             if start+10 <= len(self.actions):
-                ready.append((CacheKey(self.episode, start, self.version),
+                ready.append((CacheKey(self.episode, start, self.versions.pop(start)),
                               self.pending.pop(start), self.actions[start:start+10]))
         return ready
 
@@ -364,18 +368,45 @@ class PeriodicActions:
     update continue the remaining five, then hold pose. Never apply a late block.
     """
     def __init__(self):
-        self.replies={};self.remaining=deque();self.gripper=-1.;self.lock=threading.Lock()
-    def offer(self,cycle,finished,actions):
-        with self.lock:self.replies[cycle]=(finished,actions)
-    def boundary(self,cycle,deadline):
+        self.replies={};self.remaining=deque();self.gripper=-1.;self.lock=threading.Lock();self.source='production';self.last_source='hold'
+    def offer(self,cycle,finished,actions,source='production'):
+        with self.lock:self.replies[cycle]=(finished,actions,source)
+    def boundary(self,cycle,deadline,allowed_source=None):
         with self.lock:
             reply=self.replies.pop(cycle,None)
             for old in [k for k in self.replies if k<cycle]:self.replies.pop(old)
-            ontime=reply is not None and reply[0]<=deadline
-            if ontime:self.remaining=deque(reply[1])
+            ontime=reply is not None and reply[0]<=deadline and (allowed_source is None or reply[2]==allowed_source)
+            if ontime:self.remaining=deque(reply[1]);self.source=reply[2]
             return ontime
     def next(self):
         with self.lock:
             if self.remaining:
-                action=self.remaining.popleft();self.gripper=float(action[-1]);return action,False
+                action=self.remaining.popleft();self.gripper=float(action[-1]);self.last_source=self.source;return action,False
+            self.last_source='hold'
             return [0.,0.,0.,0.,0.,0.,self.gripper],True
+    def interrupt(self):
+        with self.lock:self.remaining.clear()
+
+
+class TakeoverRule:
+    """Latched takeover: 20 control intervals below displacement threshold or 70% time."""
+    def __init__(self, distance_m, steps=20, time_fraction=.7):
+        self.distance_m=distance_m;self.steps=steps;self.time_fraction=time_fraction
+        self.positions=deque(maxlen=steps+1);self.reason=None
+    def update(self,position,elapsed,time_limit,success=False):
+        self.positions.append(tuple(float(x) for x in position))
+        if self.reason or success:return None
+        span=None
+        if len(self.positions)==self.steps+1:
+            origin=self.positions[0]
+            span=max(math.sqrt(sum((x-y)**2 for x,y in zip(p,origin))) for p in self.positions)
+            if span<self.distance_m:self.reason='stagnation'
+        if not self.reason and elapsed>=self.time_fraction*time_limit:self.reason='time_budget_70pct'
+        return dict(reason=self.reason,max_displacement_m=span,elapsed_s=elapsed) if self.reason else None
+
+
+def window_data_source(action_sources, intervened):
+    if len(action_sources)!=10:return None
+    if all(x=='operator' for x in action_sources):return 'operator_correction'
+    if not intervened and all(x=='production' for x in action_sources):return 'self_success'
+    return None

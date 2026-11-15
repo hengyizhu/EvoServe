@@ -3,7 +3,7 @@ from pathlib import Path
 import os,random,sys,time,traceback,queue,threading
 from concurrent.futures import ThreadPoolExecutor
 from .io import RPCClient,save,append,read
-from .core import ActionWindowAssembler,PeriodicActions
+from .core import ActionWindowAssembler,PeriodicActions,TakeoverRule,window_data_source
 from .simulation import AsyncRenderer
 
 PERIOD=.250
@@ -41,12 +41,16 @@ def run(cfg):
                 while renderer.get(episode)['captured']<fresh:time.sleep(.002)
             if index==0:
                 save(out/'ready.json',dict(pid=os.getpid(),renderer='independent OSMesa state',request_period_s=PERIOD,physics_hz=20,returned_actions=10,normal_actions_per_cycle=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
+            primed_origin=None
             while True:
                 assignment=coord.call('begin_episode',expert=cfg['expert'],robot=cfg['robot'],episode=episode)
                 if assignment.get('stop'):return
                 if not assignment.get('wait'):break
-                renderer.submit(episode,0,env.get_sim_state().copy());time.sleep(.01)
-            version=assignment['version'];origin=assignment['origin'];end=assignment['end']
+                planned=assignment.get('origin')
+                if planned is not None and primed_origin!=planned and time.monotonic()>=planned-.20:
+                    renderer.submit(episode,0,env.get_sim_state().copy());primed_origin=planned
+                time.sleep(.002)
+            version=assignment['version'];production_version=assignment.get('production_version',version);origin=assignment['origin'];end=assignment['end']
             if next_release is None:next_release=origin+cfg['phase_s']
             # Reset/validation barriers never silently stretch the arrival clock.
             while next_release+PERIOD<=time.monotonic():
@@ -55,23 +59,33 @@ def run(cfg):
                 append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulation_reset_or_episode_barrier',sent=False))
                 requests_total+=1;sim_misses+=1;next_release+=PERIOD
             assembler=ActionWindowAssembler(episode,version);actions=PeriodicActions();completed=queue.Queue();futures=[];seen_frames=set();reservoir=[];rng=random.Random(seed+211);eligible=0;success=False;stopped=False;cycle=0;episode_time=next_release;tick=0;physics_cpu=0.;episode_misses=0;episode_holds=0
-            def infer(cycle,release,rid,raw,frame,captured):
+            operator_active=False;takeover_event=None;action_sources=[]
+            detector=TakeoverRule(cfg.get('stagnation_distance_m',.002))
+            detector.update(env.env._get_observations()['robot0_eef_pos'],0,cfg['action_budget']/20)
+            def infer(cycle,release,rid,raw,frame,captured,operator_requested):
                 client=RPCClient(cfg['server']);c=RPCClient(cfg['coordinator'])
                 try:
-                    append(out/'dispatches.jsonl',dict(request_id=rid,release=release,dispatched=time.monotonic(),expert=cfg['expert'],robot=cfg['robot']))
-                    reply=client.call('infer',raw=raw,expert=cfg['expert'],version=version,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
+                    dispatched=time.monotonic()
+                    append(out/'dispatches.jsonl',dict(request_id=rid,release=release,dispatched=dispatched,expert=cfg['expert'],robot=cfg['robot']))
+                    cache_version=production_version if operator_requested else version
+                    reply=client.call('infer',raw=raw,expert=cfg['expert'],version=cache_version,operator=operator_requested,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
                     finish=time.monotonic()
-                    if finish<=release+PERIOD:actions.offer(cycle,finish,reply['actions'])
+                    selected=reply['operator_actions'] if operator_requested else reply['actions']
+                    if selected is None:raise RuntimeError('operator action missing')
+                    if finish<=release+PERIOD:actions.offer(cycle,finish,selected,'operator' if operator_requested else 'production')
                     c.call('finish',request_id=rid,finish=finish)
-                    completed.put((cycle,release,finish,frame,raw,reply['cache_ref']))
-                    append(out/'requests.jsonl',dict(request_id=rid,expert=cfg['expert'],version=version,release=release,finish=finish,latency_ms=(finish-release)*1000,observation_frame=frame,observation_age_ms=(release-captured)*1000,sent=True))
+                    completed.put((cycle,release,finish,frame,raw,reply['cache_ref'],cache_version))
+                    append(out/'requests.jsonl',dict(request_id=rid,expert=cfg['expert'],version=cache_version,episode_version=version,operator_requested=operator_requested,release=release,finish=finish,latency_ms=(finish-release)*1000,observation_frame=frame,observation_age_ms=(dispatched-captured)*1000,observation_after_nominal_ms=(captured-release)*1000,sent=True))
                 except Exception:completed.put(('error',traceback.format_exc()))
                 finally:client.close();c.close()
             def accept_ready():
                 nonlocal eligible
                 for key,source,executed in assembler.collect_ready():
+                    sources=action_sources[key.frame:key.frame+10];data_source=window_data_source(sources,operator_active)
+                    if data_source is None:
+                        coord.call('drop',expert=cfg['expert'],refs=[source['cache_ref']]);continue
                     eligible+=1;j=rng.randrange(eligible)
-                    sample=dict(episode=episode,frame=key.frame,version=version,expert=cfg['expert'],raw=source['raw'],cache_ref=source['cache_ref'],actions=np.asarray(executed,dtype=np.float32),action_frames=list(range(key.frame,key.frame+10)))
+                    sample=dict(episode=episode,frame=key.frame,version=key.version,data_source=data_source,action_sources=sources,expert=cfg['expert'],raw=source['raw'],cache_ref=source['cache_ref'],actions=np.asarray(executed,dtype=np.float32),action_frames=list(range(key.frame,key.frame+10)))
                     discarded=None
                     if len(reservoir)<8:reservoir.append(sample)
                     elif j<8:discarded=reservoir[j];reservoir[j]=sample
@@ -81,34 +95,42 @@ def run(cfg):
                 while not completed.empty():
                     value=completed.get()
                     if value[0]=='error':raise RuntimeError(value[1])
-                    _,release,finish,frame,raw,ref=value
+                    _,release,finish,frame,raw,ref,cache_version=value
                     if frame in seen_frames or finish>release+PERIOD:
                         coord.call('drop',expert=cfg['expert'],refs=[ref]);continue
-                    seen_frames.add(frame);assembler.observe(frame,dict(raw=raw,cache_ref=ref));accept_ready()
+                    seen_frames.add(frame);assembler.observe(frame,dict(raw=raw,cache_ref=ref),version=cache_version);accept_ready()
             while len(assembler.actions)<cfg['action_budget'] and not success:
                 due=episode_time+tick/20
                 time.sleep(max(0,due-time.monotonic()))
                 if time.monotonic()>=end:stopped=True;break
                 drain()
                 if tick%5==0:
-                    if cycle:actions.boundary(cycle-1,next_release)
+                    if cycle:actions.boundary(cycle-1,next_release,allowed_source='operator' if operator_active else 'production')
                     state=coord.call('environment',expert=cfg['expert'])
                     if state['stop']:stopped=True;break
                     rid=f"r{cfg['robot']}:period:{round((next_release-origin)/PERIOD)}";view=renderer.get(episode)
                     raw=raw_observation(view,state.get('perturb')) if view else None
                     lag=time.monotonic()-next_release
-                    behind=lag>=PERIOD or view is None or next_release-view['captured']>=PERIOD
+                    behind=lag>=PERIOD or view is None or time.monotonic()-view['captured']>=PERIOD
                     episode_misses+=int(behind);sim_misses+=int(behind)
-                    coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=raw,seed=seed*10000+cycle)
+                    coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=raw,seed=seed*10000+cycle,operator=operator_active)
                     requests_total+=1;futures=[f for f in futures if not f.done()]
                     if raw is not None and len(futures)<8:
-                        futures.append(pool.submit(infer,cycle,next_release,rid,raw,view['frame'],view['captured']));requests_sent+=1
+                        futures.append(pool.submit(infer,cycle,next_release,rid,raw,view['frame'],view['captured'],operator_active));requests_sent+=1
                     else:append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulator_unready' if raw is None else 'request_backlog_limit',sent=False))
-                    append(out/'cycles.jsonl',dict(cycle=cycle,nominal_release=next_release,dispatch_lag_ms=lag*1000,simulation_overrun=behind,observation_age_ms=None if view is None else (next_release-view['captured'])*1000))
+                    append(out/'cycles.jsonl',dict(cycle=cycle,nominal_release=next_release,dispatch_lag_ms=lag*1000,simulation_overrun=behind,observation_age_ms=None if view is None else (time.monotonic()-view['captured'])*1000))
                     next_release+=PERIOD;cycle+=1
                 action,hold=actions.next();action=np.asarray(action,dtype=np.float32);holds+=int(hold);episode_holds+=int(hold)
-                t=time.thread_time();env.step(action.tolist());physics_cpu+=time.thread_time()-t;assembler.actions.append(action.copy());accept_ready()
+                t=time.thread_time();env.step(action.tolist());physics_cpu+=time.thread_time()-t;assembler.actions.append(action.copy());action_sources.append(actions.last_source);accept_ready()
+                append(out/'executed_actions.jsonl',dict(episode=episode,frame=len(assembler.actions)-1,source=actions.last_source,action=action.tolist()))
                 success=bool(env.check_success())
+                if cfg.get('operator_enabled') and not operator_active:
+                    trigger=detector.update(env.env._get_observations()['robot0_eef_pos'],time.monotonic()-episode_time,cfg['action_budget']/20,success)
+                    if trigger:
+                        operator_active=True;actions.interrupt()
+                        takeover_event=dict(**trigger,episode=episode,expert=cfg['expert'],robot=cfg['robot'],frame=len(assembler.actions),time=time.monotonic(),episode_version=version,production_version=production_version)
+                        coord.call('takeover',**takeover_event);append(out/'takeovers.jsonl',takeover_event)
+                        coord.call('drop',expert=cfg['expert'],refs=[x['cache_ref'] for x in reservoir]);reservoir.clear();eligible=0
                 if tick%5==1:renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
                 tick+=1
                 if time.monotonic()-last_report>=5:
@@ -117,10 +139,10 @@ def run(cfg):
             for f in futures:f.result()
             drain();coord.call('drop',expert=cfg['expert'],refs=[v['cache_ref'] for v in assembler.pending.values()])
             for sample in reservoir:
-                if success and not stopped:coord.call('window',**sample,success=True)
+                if (sample['data_source']=='operator_correction' or (success and not operator_active)) and not stopped:coord.call('window',**sample,success=success)
                 else:coord.call('drop',expert=cfg['expert'],refs=[sample['cache_ref']])
             if stopped:coord.call('abort_episode',expert=cfg['expert'],episode=episode);break
-            row=dict(episode=episode,episode_index=index,expert=cfg['expert'],robot=cfg['robot'],version=version,success=success,steps=len(assembler.actions),seconds=time.monotonic()-episode_time,sim_cpu_seconds=physics_cpu,simulation_overrun_cycles=episode_misses,hold_ticks=episode_holds,seed=seed,epoch_at_start=assignment['epoch'],finished=time.monotonic(),reset_seconds=episode_time-reset_start)
+            row=dict(episode=episode,episode_index=index,expert=cfg['expert'],robot=cfg['robot'],version=version,success=success,autonomous_success=success and not operator_active,intervened=operator_active,takeover=takeover_event,steps=len(assembler.actions),seconds=time.monotonic()-episode_time,sim_cpu_seconds=physics_cpu,simulation_overrun_cycles=episode_misses,hold_ticks=episode_holds,seed=seed,epoch_at_start=assignment['epoch'],finished=time.monotonic(),reset_seconds=episode_time-reset_start)
             coord.call('end_episode',**row);append(out/'episodes.jsonl',row);index+=1
     finally:
         save(out/'final_counters.json',dict(requests_total=requests_total,requests_sent=requests_sent,simulation_overrun_cycles=sim_misses,hold_ticks=holds))

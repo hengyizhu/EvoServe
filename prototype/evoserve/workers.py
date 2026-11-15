@@ -15,6 +15,7 @@ def serve(cfg):
     out=Path(cfg['out']);out.mkdir(exist_ok=True,parents=True)
     model=GraphModel(cfg['assets'])
     for eid in cfg['experts']:model.install(eid,f'{eid}:v0')
+    if cfg.get('operators'):model.enable_operators(cfg['operators'])
     exporter=Export(out,model.prefix) if cfg['export_cache'] else None
     requests=queue.Queue();running=True;ident=0
     def handle(msg):
@@ -35,9 +36,12 @@ def serve(cfg):
                         save(out/'ipc'/f'{ident:08d}.json',rec)
                         ref=dict(server=str(out),id=ident);ident+=1
                         row.update({k:v for k,v in rec.items() if k.startswith('export_')})
-                    row.update(finish_ns=time.monotonic_ns(),request_id=msg['request_id'],expert=msg['expert'],version=msg['version'])
+                    operator_actions=None
+                    if msg.get('operator'):
+                        operator_actions,timing=model.infer_operator(msg['expert'],msg['seed']+7919);row.update(timing)
+                    row.update(finish_ns=time.monotonic_ns(),request_id=msg['request_id'],expert=msg['expert'],version=msg['version'],operator_requested=bool(msg.get('operator')))
                     append(out/'requests.jsonl',row)
-                    reply['value']=dict(actions=actions,cache_ref=ref,timing=row)
+                    reply['value']=dict(actions=actions,operator_actions=operator_actions,cache_ref=ref,timing=row)
                 elif msg['op']=='install':
                     model.install(msg['expert'],msg['version'],msg.get('path'));reply['value']=True
                 elif msg['op']=='remove':
@@ -110,11 +114,13 @@ def train(cfg):
                         counters['dropped']+=1;return dict(accepted=False,reason='prefix_expired_or_missing')
                     if errors:raise RuntimeError(errors[-1])
                     time.sleep(.001)
-            payload=dict(raw=msg['raw'],actions=msg['actions'],prefix=prefix)
+            if msg.get('data_source')=='operator_correction' and msg.get('action_sources')!=['operator']*10:raise ValueError('correction window contains non-operator actions')
+            payload=dict(raw=msg['raw'],actions=msg['actions'],prefix=prefix,data_source=msg.get('data_source','self_success'))
             nbytes=sum(x.numel()*x.element_size() for x in model.leaves(prefix) if model.torch.is_tensor(x)) if prefix is not None else 0
             nbytes+=sum(x.nbytes for x in msg['raw'].values() if hasattr(x,'nbytes'))
-            window=Window(CacheKey(msg['episode'],msg['frame'],msg['version']),msg['expert'],payload,nbytes,tuple(msg['action_frames']),msg['success'])
+            window=Window(CacheKey(msg['episode'],msg['frame'],msg['version']),msg['expert'],payload,nbytes,tuple(msg['action_frames']),msg['success'],msg.get('data_source','self_success'))
             accepted=pool.add(window);counters['accepted']+=int(accepted)
+            source_key=msg.get('data_source','self_success')+'_accepted';counters[source_key]=counters.get(source_key,0)+int(accepted)
             if not accepted and pool.versions.get(msg['expert'])!=msg['version']:counters['version_mismatch']+=1
             return dict(accepted=accepted)
         if op=='status':return dict(status,**counters,error=errors[-1] if errors else None)

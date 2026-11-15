@@ -131,6 +131,31 @@
       "observation": "latest completed CPU camera observation; record actual capture frame and age; labels are actual actions starting at that frame",
       "reset": "missed nominal periods remain in SLO denominator",
       "capacity_gate": "SLO >= .99, P99 <= 1.05 matched-arrival no-simulator baseline, no simulation overrun cycles"
+    },
+    "training_data": {
+      "mode": "simulated_operator_correction",
+      "operator_manifest": "/home/hengyi/Workspace/01_VLA-Serving/Repositories/EvoServe-prototype/prototype/configs/operators.machine_a.json",
+      "stagnation_distance_m": 0.002,
+      "stagnation_control_steps": 20,
+      "stagnation_metric": "max distance from initial position across 20 control intervals",
+      "time_fraction": 0.7,
+      "latched_until_episode_end": true,
+      "production_inference_continues": true,
+      "operator_uses_production_prefix": true,
+      "operator_on_same_gpu": true,
+      "operator_cost_included_in_deadline_latency": true,
+      "training_sources": [
+        "operator_correction",
+        "autonomous_success"
+      ],
+      "exclude_mixed_action_windows": true,
+      "operator_samples_require_episode_success": false,
+      "validation_success": "autonomous only; intervention counts as policy failure",
+      "takeovers_per_expert_per_hour": true,
+      "m1_task": "low-light drawer",
+      "m1_seconds": 3600,
+      "rl_enabled": false,
+      "rl_switch_condition": "await Machine B evidence of improvement without corrections"
     }
   }
 }

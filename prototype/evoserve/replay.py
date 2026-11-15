@@ -48,7 +48,7 @@ class ArrivalReplay:
                 corpus=[v for (expert,_),v in sorted(self.corpus.items()) if expert==e]
                 raw=corpus[row.get('corpus_index',0)%len(corpus)]
                 with self.count_lock:self.dispatched+=1
-                client.call('infer',raw=raw,expert=e,version=f'{e}:v0',seed=row.get('seed') or self.run.cfg['seed'],episode=f'replay:{robot}',frame=0,request_id=key)
+                client.call('infer',operator=row.get('operator',False),raw=raw,expert=e,version=f'{e}:v0',seed=row.get('seed') or self.run.cfg['seed'],episode=f'replay:{robot}',frame=0,request_id=key)
                 finish=time.monotonic();self.run.ledger.finish(key,finish)
                 append(self.run.out/'replay_requests.jsonl',dict(request_id=key,release=release,finish=finish,expert=e,robot=robot))
         except Exception:

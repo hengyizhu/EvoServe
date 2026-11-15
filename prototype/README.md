@@ -30,10 +30,11 @@ presence of this code does not mean that M1/M2/M3 passed.
   masters and EMA, lr 5e-5, 50 warmup steps, cosine over 4000 steps to 10%, EMA
   .999, effective batch 8/expert (4 × accumulation 2). Each expert has a separate
   optimizer, EMA, update counter and sampling/noise seed.
-- Online pool: successful real episodes, uniformly retain at most eight complete
-  windows/episode; 512 samples and 12 GiB maximum/trainer with random replacement.
+- Online pool: simulated-operator corrections plus autonomous successful real
+  episodes; uniformly retain at most eight eligible complete windows/episode; 512 samples and 12 GiB maximum/trainer with random replacement.
   Four recent plus four historical samples per update, with replacement. No
-  offline demonstrations are secretly added. Keys: `(episode, frame, version)`;
+  offline demonstration windows are directly added; operator weights are explicitly
+  pretrained on the full existing adaptation-training split. Keys: `(episode, frame, version)`;
   mismatched versions are dropped. Rejection restores production parameters and
   clears candidate optimizer state; promotion retains training state.
 - Unrestricted MPS for colocated service/training, private per-GPU pipe/log dirs.
@@ -58,7 +59,9 @@ presence of this code does not mean that M1/M2/M3 passed.
   interpolated. Historical curves used five denoising steps; serving here uses ten.
 - Validate 50 candidate and 50 contemporaneous production episodes; allocate half
   the expert's robots to each arm (one robot alternates episodes). Promote only if
-  the real candidate success count is higher. No fabricated successes or forced
+  the real candidate **autonomous** success count is higher; any episode needing
+  takeover is a failure for policy prediction/validation even if the operator
+  subsequently completes the task. No fabricated successes or forced
   promotion. Keep each episode's model version fixed.
 
 ## Layout and commands
@@ -111,7 +114,7 @@ a real update, a merged update with independent optimizers, and candidate loadin
 Each operational stage retries once and then records the failure. Dependent long
 runs do not start after a failed milestone gate; independent capacity tests continue.
 
-- M1: ten-minute smoke, then up to two hours (low-light drawer, one expert/robot).
+- M1: ten-minute smoke, then a one-hour formal run (low-light drawer, one expert/robot).
   Passing requires an actual validated promotion and SLO≥99%; absence of improvement
   is reported as not demonstrated, not a successful milestone.
 - Capacity: fixed-rate robots N=1..6, 60-second screening plus matched-arrival
@@ -128,7 +131,7 @@ runs do not start after a failed milestone gate; independent capacity tests cont
   long runs. Split puts all service on GPU 0 and dedicated cached training on 1.
 
 Every run exports `summary.json`, per-robot request/episode/cycle records,
-`scheduler.jsonl`, `validation_results.jsonl`, controller windows and GPU/CPU
+`scheduler.jsonl`, `validation_results.jsonl`, `operator_hourly.csv`, controller windows and GPU/CPU
 monitoring. Campaign summaries are `prototype_summary.csv`, `原型汇总.md`, and
 `milestones/*.json`. Raw images, prefix caches, weights, checkpoints and logs are
 not committed. The outer queue supplies the 30-minute heartbeat and survives
@@ -142,3 +145,49 @@ archived launchers retain Machine A's absolute historical dependency paths; use
 on a different machine. They are not invoked by the portable prototype backend.
 The active queue remains in the experiment directory, so editing this branch
 does not restart or interrupt a measurement already in progress.
+
+## Simulated operator correction (before M1)
+
+`configs/operators.machine_a.json` pins the existing full-adaptation-data action
+expert EMA checkpoints by SHA256 and task. The source adaptation training sets
+contain 20 demonstration episodes; this means the full existing training split,
+not the entire train/validation dataset. Low-light drawer uses seed08/step4000,
+with historical 86% success (five-denoising-step evaluation); prototype inference
+uses ten steps and measures its own outcomes. No operator weights are committed. For migration, transfer the selected EMA files
+separately, retain their checksums, and set `operator_manifest` in the machine config.
+The registry also audits a camera-view expert for future use; the current task
+queue still uses drawer/book/microwave/X.
+
+Take over until episode end when either condition first holds:
+
+1. Maximum displacement from the beginning of the latest **20 control intervals**
+   (21 sampled positions, 1 s at 20 Hz) is **strictly below 2 mm**.
+2. The episode has used **70% of its wall-clock time limit**, without success.
+   With 600 actions at 20 Hz this is 21 s of a 30 s episode.
+
+The next fixed-period request obtains operator actions. Pending old production
+commands are discarded at takeover; hold pose until a timely operator block
+arrives. Production inference continues at 4 requests/s. On the same GPU, a
+separate suffix-only graph uses its just-computed frozen VLM prefix and the
+operator's action weights. This extra computation and cache export are included
+in the request's deadline latency; per-request operator time is also logged.
+The operator does not update the learner's weights directly. GPU preflight
+compares this reused-prefix path with a full operator forward and verifies that
+switching back restores production output exactly.
+
+Corrective windows must contain ten actually executed operator actions. Mixed
+production/operator transitions and hold actions are excluded, and pre-takeover
+failed production windows are discarded. Operator windows remain eligible even
+if the episode eventually fails; their failure flag is preserved. Autonomous
+windows require episode success without takeover. During candidate rescue,
+shadow production inference supplies the cache and its true production version;
+no candidate cache is relabeled as production. `training_windows.jsonl` and each
+robot's `executed_actions.jsonl` record frame/source alignment.
+
+Report total completions (including assistance) separately from autonomous
+successes. Scheduler predictions, 50-episode validation and M1 improvement use
+autonomous outcomes only. `operator_hourly.csv` reports actual takeover counts
+and rates per expert; `takeovers.jsonl` records the trigger and frame. A one-hour
+M1 run is a verification budget, not an asserted success-rate improvement.
+The data-source mode remains simulated correction until Machine B supplies
+reinforcement-learning evidence; RL is not enabled by this change.

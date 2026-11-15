@@ -9,18 +9,20 @@ class Campaign:
         self.out=self.root/'prototype_runs';self.out.mkdir(exist_ok=True)
         self.states=self.root/'prototype_task_state';self.states.mkdir(exist_ok=True)
         self.graph_available=False
+        self.operator_manifest=Path(cfg.get('operator_manifest',self.repo/'prototype/configs/operators.machine_a.json'))
+        self.operators=read(self.operator_manifest)['operators']
         self.env=dict(os.environ,PYTHONPATH=str(self.repo/'prototype'),OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
         for key in list(self.env):
             if key.startswith('CUDA_MPS_') or key in ['CUDA_VISIBLE_DEVICES','EXPERT_COUNT','SLO_FEEDBACK','PI_MPS']:self.env.pop(key,None)
     def report(self):
         rows=[read(p) for p in sorted(self.states.glob('*.json'))]
-        fields=['item','state','reason','method','robots','seconds','p99_ms','slo','successes','successful_tasks_per_hour','promotions','actual_request_rate','simulation_overrun_cycles','power_limit_w','raw']
+        fields=['item','state','reason','method','robots','seconds','p99_ms','slo','successes','successful_tasks_per_hour','autonomous_successful_tasks_per_hour','promotions','actual_request_rate','simulation_overrun_cycles','power_limit_w','raw']
         with (self.root/'prototype_summary.csv').open('w') as f:
             w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore');w.writeheader();w.writerows(rows)
         lines=['# 原型 v0（持续更新）','功耗上限225 W；时限250 ms、SLO≥99%；GPU2/3外部负载见各项监控。每台机器人固定250 ms周期，仿真迟到不延长周期。',
-               '|项目|状态|P99 ms|SLO|成功任务/h|上线次数|仿真超期周期|','|---|---|---:|---:|---:|---:|---:|']
+               '|项目|状态|P99 ms|SLO|完成任务/h（含接管）|自主成功/h|上线次数|仿真超期周期|','|---|---|---:|---:|---:|---:|---:|---:|']
         for r in rows:
-            lines.append('|'+ '|'.join(str(r.get(k,'')) for k in ['item','state','p99_ms','slo','successful_tasks_per_hour','promotions','simulation_overrun_cycles'])+'|')
+            lines.append('|'+ '|'.join(str(r.get(k,'')) for k in ['item','state','p99_ms','slo','successful_tasks_per_hour','autonomous_successful_tasks_per_hour','promotions','simulation_overrun_cycles'])+'|')
         bad=[r['item']+': '+r.get('reason','') for r in rows if r['state'] not in ['complete','passed']]
         lines+=['','异常/未完成：'+'；'.join(bad),'容量、每机器人请求率及验证明细：prototype_summary.csv、capacity.json、各项summary.json / validation_results.jsonl。']
         (self.root/'原型汇总.md').write_text('\n'.join(lines)+'\n')
@@ -59,7 +61,7 @@ class Campaign:
             try:
                 self.wait_idle([0,1]);self.status(name,attempt=attempt)
                 env=dict(self.env,CUDA_VISIBLE_DEVICES='0')
-                self.execute([sys.executable,str(self.repo/'prototype/tools/gpu_preflight.py'),'--assets',self.cfg['assets'],'--out',str(out/'data')],out,env,900)
+                self.execute([sys.executable,str(self.repo/'prototype/tools/gpu_preflight.py'),'--assets',self.cfg['assets'],'--operators',str(self.operator_manifest),'--out',str(out/'data')],out,env,900)
                 result=read(out/'data/summary.json');assert result['state']=='passed'
                 self.record(name,'passed',raw=str(out));return True
             except Exception:
@@ -68,7 +70,7 @@ class Campaign:
         self.record(name,'skipped',reason='GPU preflight failed twice; dependent GPU milestones not started',graph_available=self.graph_available,raw=str(out));return False
     def setting(self,method='ours',robots=None,gpus=None,seconds=600,changes=None,**extra):
         robots=robots or [3]
-        return dict(assets=self.cfg['assets'],prior=str(self.repo/'prototype/configs/learning_prior.json'),osmesa_lib=self.cfg['osmesa_lib'],gpus=gpus or [0],expert_ids=list(dict.fromkeys(robots)),robot_experts=robots,method=method,seconds=seconds,seed=self.cfg['seed'],action_budget=600,changes=changes or [],request_period_s=.25,**extra)
+        return dict(assets=self.cfg['assets'],prior=str(self.repo/'prototype/configs/learning_prior.json'),osmesa_lib=self.cfg['osmesa_lib'],gpus=gpus or [0],expert_ids=list(dict.fromkeys(robots)),robot_experts=robots,method=method,seconds=seconds,seed=self.cfg['seed'],action_budget=600,changes=changes or [],request_period_s=.25,operators={str(e):self.operators[str(e)] for e in set(robots)},stagnation_distance_m=.002,**extra)
     def trial(self,name,cfg,gate=None):
         old=read(self.states/(name+'.json'))
         if old:return old
@@ -127,9 +129,9 @@ class Campaign:
         lowlight=[dict(expert=3,at_s=0,perturb=dict(kind='exposure',factor=.05))]
         m1=self.trial('M1_smoke',self.setting(changes=lowlight),lambda x:self.health(x,learning=True,slo=True))
         if m1['state']=='complete':
-            long=self.trial('M1_long',self.setting(seconds=7200,changes=lowlight),lambda x:self.health(x,learning=True,slo=True))
+            long=self.trial('M1_long',self.setting(seconds=3600,changes=lowlight),lambda x:self.health(x,learning=True,slo=True))
             verified=long.get('promotions',0)>0 and long['state']=='complete'
-            save(self.root/'milestones/M1.json',dict(state='passed' if verified else 'not_demonstrated',promotions=long.get('promotions',0),raw=long.get('raw'),reason=None if verified else 'real validated improvement not demonstrated; inspect actual outcomes'))
+            save(self.root/'milestones/M1.json',dict(state='passed' if verified else 'not_demonstrated',promotions=long.get('promotions',0),raw=long.get('raw'),seconds=3600,autonomous_successes=long.get('autonomous_successes'),operator_hourly=long.get('operator_hourly'),reason=None if verified else 'one-hour autonomous improvement not demonstrated; operator-assisted successes are not counted as policy gains'))
         else:save(self.root/'milestones/M1.json',dict(state='not_demonstrated',reason=m1.get('reason')))
         capacity=self.capacity()
         # M2 remains an explicit real short test even when capacity predicts failure.

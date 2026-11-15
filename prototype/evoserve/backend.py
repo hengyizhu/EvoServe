@@ -122,6 +122,41 @@ class GraphModel(Model):
         self.slots={};self.loaded=None
         self.initial={n:p.detach().clone() for n,p in self.pairs.items()}
 
+    def enable_operators(self, operators):
+        from .operators import load_operator,sha256
+        t=self.torch;self.operator_slots={}
+        for expert,record in operators.items():
+            expert=int(expert)
+            if sha256(record['checkpoint'])!=record['sha256']:raise ValueError('Operator checksum changed')
+            delta,_=load_operator(record['checkpoint'],self.pairs,expert)
+            self.operator_slots[expert]={n:q.to(device='cuda',dtype=self.pairs[n].dtype) for n,q in delta.items()}
+        self.operator_noise=t.randn((1,10,32),device='cuda');self.operator_graph=t.cuda.CUDAGraph()
+        self.operator_events=[t.cuda.Event(enable_timing=True,external=True) for _ in range(2)]
+        self.stream.wait_stream(t.cuda.current_stream())
+        with t.cuda.stream(self.stream),t.inference_mode():
+            for _ in range(3):self.operator_work()
+        self.stream.synchronize()
+        with t.cuda.graph(self.operator_graph,stream=self.stream),t.inference_mode():self.operator_result=self.operator_work()
+        self.stream.synchronize()
+
+    def operator_work(self):
+        t=self.torch;self.operator_events[0].record();mask,kv=self.prefix;x=self.operator_noise
+        for j in range(10):
+            tt=t.full((1,),1-j/10,device='cuda',dtype=t.float32)
+            x=x-.1*self.model.velocity_from_suffix(self.model.run_suffix(self.static,x,tt,kv,mask))
+        self.operator_events[1].record();return x
+
+    def infer_operator(self,expert,seed):
+        t=self.torch;start=time.monotonic_ns()
+        with t.cuda.stream(self.stream),t.inference_mode():
+            for n,p in self.pairs.items():p.copy_(self.operator_slots[expert][n])
+            self.loaded=(expert,'operator')
+            self.operator_noise.copy_(t.randn((1,10,32),device='cuda',generator=t.Generator(device='cuda').manual_seed(seed)))
+            self.operator_graph.replay()
+            result=self.model.decode_actions(self.operator_result,self.static.state).cpu()
+            self.operator_events[-1].synchronize()
+        return result[0].numpy(),dict(operator_gpu_ms=self.operator_events[0].elapsed_time(self.operator_events[1]),operator_wall_ms=(time.monotonic_ns()-start)/1e6,operator_recomputed_prefix=False)
+
     def work(self):
         t=self.torch;self.events[0].record()
         _,mask,kv=self.model.build_prefix_cache(self.static);self.prefix=(mask,kv);self.events[1].record();x=self.noise

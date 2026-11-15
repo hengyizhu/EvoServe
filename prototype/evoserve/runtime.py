@@ -30,7 +30,7 @@ class Run:
     def __init__(self,cfg,out):
         self.cfg=cfg;self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False)
         self.closed=False;self.children=[];self.mps=[];self.stop=threading.Event();self.origin=None;self.deadline=None
-        self.ledger=DeadlineLedger();self.episodes=[];self.event_cursor=0;self.error=None
+        self.ledger=DeadlineLedger();self.episodes=[];self.takeovers=[];self.sample_sources=defaultdict(int);self.event_cursor=0;self.error=None
         self.lock=threading.RLock();self.production_paths={};self.candidate_counter=defaultdict(int)
         self.service={};self.trainer={};self.service_out={};self.plans={};self.expert_server={};self.expert_trainer={}
         self.pool_sample_counter=defaultdict(int);self.seen_change=set();self.corpus={};self.corpus_count=defaultdict(int)
@@ -89,6 +89,7 @@ class Run:
         for g,experts in gpu_experts.items():
             out=self.out/f'serve{g}';out.mkdir();self.service_out[g]=out;address=self.sockets/f's{g}'
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),experts=experts,export_cache=self.export,cpus=list(range(g*8,g*8+4)))
+            c['operators']={str(e):cfg.get('operators',{})[str(e)] for e in experts if str(e) in cfg.get('operators',{})}
             self.spawn('evoserve.workers',c,f'serve{g}',environments[g]);self.service[g]=RPCClient(address)
         for g,experts in train_experts.items():
             out=self.out/f'train{g}';out.mkdir();address=self.sockets/f't{g}';plan=self.out/f'train_plan{g}.json';self.plans[g]=plan
@@ -102,6 +103,7 @@ class Run:
         for robot,e in enumerate([] if cfg.get('replay_source') else cfg['robot_experts']):
             out=self.out/f'robot{robot}';out.mkdir()
             c=dict(out=str(out),coordinator=str(self.sockets/'coord'),server=str(self.sockets/f's{self.expert_server[e]}'),expert=e,task_id=e,robot=robot,seed=cfg['seed'],control_hz=20,action_budget=cfg['action_budget'],cpus=[16+2*robot,17+2*robot],phase_s=.25*robot/len(cfg['robot_experts']))
+            c['operator_enabled']=str(e) in cfg.get('operators',{});c['stagnation_distance_m']=cfg.get('stagnation_distance_m',.002)
             env=self.base_env();env.update(CUDA_VISIBLE_DEVICES='',MUJOCO_GL='osmesa',PYOPENGL_PLATFORM='osmesa',LIBERO_CONFIG_PATH=str(Path(cfg['assets'])/'libero_config'),LP_NUM_THREADS='1',GALLIUM_DRIVER='llvmpipe',LD_LIBRARY_PATH=cfg['osmesa_lib']+':'+env.get('LD_LIBRARY_PATH',''))
             self.spawn('evoserve.robot',c,f'robot{robot}',env)
         for robot in range(0 if cfg.get('replay_source') else len(cfg['robot_experts'])):wait_file(self.out/f'robot{robot}/ready.json',self.children)
@@ -116,9 +118,9 @@ class Run:
         if op=='begin_episode':
             with self.lock:
                 if self.stop.is_set() or (self.deadline and time.monotonic()>=self.deadline):return dict(stop=True)
-                if self.origin is None or time.monotonic()<self.origin:return dict(wait=True)
+                if self.origin is None or time.monotonic()<self.origin:return dict(wait=True,origin=self.origin)
                 version=self.scheduler.begin_episode(e,msg['robot'],msg['episode'])
-                return dict(wait=version is None,version=version,epoch=self.scheduler.experts[e].epoch,origin=self.origin,end=self.deadline)
+                return dict(wait=version is None,version=version,production_version=self.scheduler.experts[e].production,epoch=self.scheduler.experts[e].epoch,origin=self.origin,end=self.deadline)
         if op=='environment':
             return dict(stop=self.stop.is_set() or time.monotonic()>=self.deadline,epoch=self.scheduler.experts[e].epoch,perturb=self.perturbation(e))
         if op=='arrive':
@@ -126,22 +128,28 @@ class Run:
             # Small fixed corpus for matched-arrival replay without simulator CPU.
             if msg.get('raw') is not None and self.corpus_count[e]<16:
                 self.corpus[(e,self.corpus_count[e])]=msg['raw'];self.corpus_count[e]+=1
-            append(self.out/'arrivals.jsonl',dict(request_id=msg['request_id'],release=msg['release'],expert=e,robot=msg['robot'],seed=msg.get('seed'),corpus_index=max(0,self.corpus_count[e]-1)))
+            append(self.out/'arrivals.jsonl',dict(request_id=msg['request_id'],release=msg['release'],expert=e,robot=msg['robot'],seed=msg.get('seed'),operator=msg.get('operator',False),corpus_index=max(0,self.corpus_count[e]-1)))
             return True
         if op=='finish':self.ledger.finish(msg['request_id'],msg['finish']);return True
         if op=='window':
             if not self.export and not self.learning:return dict(accepted=False)
             result=self.trainer[self.expert_trainer[e]].call('window',**{k:v for k,v in msg.items() if k!='op'})
-            self.pool_sample_counter[e]+=int(result['accepted']);return result
+            self.pool_sample_counter[e]+=int(result['accepted']);self.sample_sources[f'{e}:'+msg.get('data_source','self_success')]+=int(result['accepted'])
+            append(self.out/'training_windows.jsonl',dict(expert=e,episode=msg['episode'],observation_frame=msg['frame'],action_frames=msg['action_frames'],action_sources=msg.get('action_sources'),data_source=msg.get('data_source','self_success'),cache_version=msg['version'],episode_success=msg['success'],accepted=result['accepted']))
+            return result
         if op=='drop':
             if self.export:return self.trainer[self.expert_trainer[e]].call('drop',refs=msg['refs'])
+            return True
+        if op=='takeover':
+            with self.lock:
+                row={k:v for k,v in msg.items() if k!='op'};self.takeovers.append(row);append(self.out/'takeovers.jsonl',row)
             return True
         if op=='abort_episode':
             with self.lock:self.scheduler.experts[e].active_episodes.pop(msg['episode'],None)
             return True
         if op=='end_episode':
             with self.lock:
-                event=self.scheduler.end_episode(e,msg['episode'],msg['success']);row={k:v for k,v in msg.items() if k!='op'};self.episodes.append(row);append(self.out/'episodes.jsonl',row)
+                event=self.scheduler.end_episode(e,msg['episode'],msg.get('autonomous_success',msg['success']));row={k:v for k,v in msg.items() if k!='op'};self.episodes.append(row);append(self.out/'episodes.jsonl',row)
                 if event:self.apply_decision(event)
             return True
         raise ValueError(op)
@@ -228,7 +236,7 @@ class Run:
     def summarize(self):
         stats=self.ledger.window(self.origin,self.deadline,time.monotonic())
         with self.lock:episodes=[dict(x) for x in self.episodes if self.origin<=x['finished']<self.deadline]
-        per_expert={str(e):dict(episodes=sum(x['expert']==e for x in episodes),successes=sum(x['expert']==e and x['success'] for x in episodes),production_version=s.production,training_steps=s.step) for e,s in self.scheduler.experts.items()}
+        per_expert={str(e):dict(episodes=sum(x['expert']==e for x in episodes),successes=sum(x['expert']==e and x['success'] for x in episodes),autonomous_successes=sum(x['expert']==e and x.get('autonomous_success',x['success']) for x in episodes),takeovers=sum(x['expert']==e for x in self.takeovers),takeovers_per_hour=sum(x['expert']==e for x in self.takeovers)*3600/self.cfg['seconds'],production_version=s.production,training_steps=s.step) for e,s in self.scheduler.experts.items()}
         validations=[x for x in self.scheduler.events if x['event']=='validation_finished']
         robot_stats={}
         for i in range(len(self.cfg['robot_experts'])):
@@ -240,15 +248,23 @@ class Run:
             # Nominal periods absent during reset/barriers remain deadline misses.
             robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles)+sum(x.get('reason')=='simulation_reset_or_episode_barrier' for x in rows),request_period_s=.25)
         simulation_overruns=sum(x['simulation_overrun_cycles'] for x in robot_stats.values())
-        summary=dict(state='complete',replay=bool(self.cfg.get('replay_source')),per_robot=robot_stats,simulation_overrun_cycles=simulation_overruns,method=self.cfg['method'],seconds=self.cfg['seconds'],robots=len(self.cfg['robot_experts']),episodes=len(episodes),successes=sum(x['success'] for x in episodes),successful_tasks_per_hour=sum(x['success'] for x in episodes)*3600/self.cfg['seconds'],expert_results=per_expert,promotions=sum(x['decision']=='promote' for x in validations),validations=validations,accepted_cache_windows=dict(self.pool_sample_counter),power_limits_w={x['gpu']:x['power_limit_w'] for x in gpu_status()['cards']},nominal_request_rate=stats['requests']/self.cfg['seconds'],actual_request_rate=(self.replay.dispatched if hasattr(self,'replay') else sum(x['sent_requests'] for x in robot_stats.values()))/self.cfg['seconds'],**stats)
+        summary=dict(state='complete',accepted_windows_by_source=dict(self.sample_sources),autonomous_successes=sum(x.get('autonomous_success',x['success']) for x in episodes),autonomous_successful_tasks_per_hour=sum(x.get('autonomous_success',x['success']) for x in episodes)*3600/self.cfg['seconds'],validation_success_definition='completed successfully without any operator takeover',operator_same_gpu_cost_included=bool(self.cfg.get('operators')),replay=bool(self.cfg.get('replay_source')),per_robot=robot_stats,simulation_overrun_cycles=simulation_overruns,method=self.cfg['method'],seconds=self.cfg['seconds'],robots=len(self.cfg['robot_experts']),episodes=len(episodes),successes=sum(x['success'] for x in episodes),successful_tasks_per_hour=sum(x['success'] for x in episodes)*3600/self.cfg['seconds'],expert_results=per_expert,promotions=sum(x['decision']=='promote' for x in validations),validations=validations,accepted_cache_windows=dict(self.pool_sample_counter),power_limits_w={x['gpu']:x['power_limit_w'] for x in gpu_status()['cards']},nominal_request_rate=stats['requests']/self.cfg['seconds'],actual_request_rate=(self.replay.dispatched if hasattr(self,'replay') else sum(x['sent_requests'] for x in robot_stats.values()))/self.cfg['seconds'],**stats)
         curves=[]
         for e in self.cfg['expert_ids']:
             for begin in range(0,self.cfg['seconds'],300):
                 end=min(self.cfg['seconds'],begin+300);subset=[x for x in episodes if x['expert']==e and self.origin+begin<=x['finished']<self.origin+end]
-                curves.append(dict(expert=e,begin_s=begin,end_s=end,episodes=len(subset),successes=sum(x['success'] for x in subset),success_rate=sum(x['success'] for x in subset)/len(subset) if subset else None,power_limit_w=225))
+                curves.append(dict(expert=e,begin_s=begin,end_s=end,episodes=len(subset),successes=sum(x['success'] for x in subset),autonomous_successes=sum(x.get('autonomous_success',x['success']) for x in subset),autonomous_success_rate=sum(x.get('autonomous_success',x['success']) for x in subset)/len(subset) if subset else None,takeover_episodes=sum(x.get('intervened',False) for x in subset),power_limit_w=225))
         with (self.out/'expert_success_curves.csv').open('w') as f:
             w=csv.DictWriter(f,fieldnames=list(curves[0]));w.writeheader();w.writerows(curves)
         summary['hourly']=[dict(hour=i//3600+1,completed_tasks=sum(self.origin+i<=x['finished']<self.origin+min(i+3600,self.cfg['seconds']) for x in episodes),successful_tasks=sum(self.origin+i<=x['finished']<self.origin+min(i+3600,self.cfg['seconds']) and x['success'] for x in episodes)) for i in range(0,self.cfg['seconds'],3600)]
+        operator_hourly=[]
+        for e in self.cfg['expert_ids']:
+            for begin in range(0,self.cfg['seconds'],3600):
+                end=min(self.cfg['seconds'],begin+3600);count=sum(x['expert']==e and self.origin+begin<=x['time']<self.origin+end for x in self.takeovers)
+                operator_hourly.append(dict(expert=e,begin_s=begin,end_s=end,takeovers=count,takeovers_per_hour=count*3600/(end-begin)))
+        with (self.out/'operator_hourly.csv').open('w') as f:
+            w=csv.DictWriter(f,fieldnames=list(operator_hourly[0]));w.writeheader();w.writerows(operator_hourly)
+        summary['operator_hourly']=operator_hourly
         save(self.out/'summary.json',summary)
         with (self.out/'replay_corpus.pkl').open('wb') as f:pickle.dump(self.corpus,f)
         return summary
