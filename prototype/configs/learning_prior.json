@@ -1,0 +1,306 @@
+{
+  "points": [
+    [
+      0,
+      0.0
+    ],
+    [
+      250,
+      0.13064150688735407
+    ],
+    [
+      500,
+      0.21335871585041022
+    ],
+    [
+      1000,
+      0.4015124779244381
+    ],
+    [
+      2000,
+      0.7462860137278742
+    ],
+    [
+      3000,
+      0.8799021207659081
+    ],
+    [
+      4000,
+      1.0
+    ]
+  ],
+  "default_amplitude": 0.6585714285714285,
+  "default_time_scale": 1,
+  "task_normalized_curves": {
+    "drawer": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.44230769230769235
+      ],
+      [
+        500,
+        0.40384615384615385
+      ],
+      [
+        1000,
+        0.5384615384615385
+      ],
+      [
+        2000,
+        0.8076923076923076
+      ],
+      [
+        3000,
+        0.9230769230769231
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "book": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        -0.02197802197802198
+      ],
+      [
+        500,
+        0.02197802197802198
+      ],
+      [
+        1000,
+        0.1208791208791209
+      ],
+      [
+        2000,
+        0.6813186813186813
+      ],
+      [
+        3000,
+        0.9560439560439561
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "microwave": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.04761904761904763
+      ],
+      [
+        500,
+        0.17460317460317462
+      ],
+      [
+        1000,
+        0.36507936507936517
+      ],
+      [
+        2000,
+        0.7301587301587302
+      ],
+      [
+        3000,
+        0.7777777777777779
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "X": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.0625
+      ],
+      [
+        500,
+        0.12500000000000006
+      ],
+      [
+        1000,
+        0.24999999999999994
+      ],
+      [
+        2000,
+        0.49999999999999994
+      ],
+      [
+        3000,
+        0.75
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "Y": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.0625
+      ],
+      [
+        500,
+        0.125
+      ],
+      [
+        1000,
+        0.25
+      ],
+      [
+        2000,
+        0.5
+      ],
+      [
+        3000,
+        0.75
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "camera": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.16569767441860467
+      ],
+      [
+        500,
+        0.33139534883720934
+      ],
+      [
+        1000,
+        0.6627906976744187
+      ],
+      [
+        2000,
+        1.0697674418604652
+      ],
+      [
+        3000,
+        1.0348837209302326
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ],
+    "texture": [
+      [
+        0,
+        0.0
+      ],
+      [
+        250,
+        0.15584415584415587
+      ],
+      [
+        500,
+        0.3116883116883117
+      ],
+      [
+        1000,
+        0.6233766233766235
+      ],
+      [
+        2000,
+        0.935064935064935
+      ],
+      [
+        3000,
+        0.9675324675324675
+      ],
+      [
+        4000,
+        1.0
+      ]
+    ]
+  },
+  "parents": {
+    "drawer": 0.32,
+    "book": 0.02,
+    "microwave": 0.02,
+    "X": 0.22,
+    "Y": 0.0,
+    "camera": 0.04,
+    "texture": 0.1
+  },
+  "observed_points_per_seed": {
+    "drawer": [
+      7,
+      7
+    ],
+    "book": [
+      7,
+      7
+    ],
+    "microwave": [
+      7,
+      7
+    ],
+    "X": [
+      2
+    ],
+    "Y": [
+      2
+    ],
+    "camera": [
+      4,
+      4
+    ],
+    "texture": [
+      4,
+      4
+    ]
+  },
+  "sources_sha256": {
+    "pi05_extended_20261109/learning_curves.csv": "3880cb1ea3c82b73f9b1bb26e050c0ac31cd066f21adee9fd198fabde51db5ba",
+    "pi05_night_20261110/learning_curves.csv": "5b349432f8eefbe391e914d9cf9370d0e9cc9460b232aa2b28e4bc0bece73e92",
+    "pi05_loadscan_20261109/lora_book_curve.csv": "81f8cf01efd2ab37df4020d2ea3449b0376319d8dc209a56eb1642d4a4fc74db",
+    "pi05_adaptive_validate_20261111/parent_screening.csv": "b41fef38fc0623118f077b37380af58221046920f0cfd21a7ac0063c10441a53",
+    "pi05_adaptive_validate_20261111/results_summary.csv": "476341745c23823125b1b4b616ffb574459951c8cb05e924d7d11bd6e55de35f",
+    "pi05_followon_20261112/B_parent_screening.csv": "e3ff5ca0623f06f6970fac8e85128ffce437f8f80662348bddfc9667dccdd611",
+    "pi05_followon_20261112/B_learning.csv": "d0f49f4b359fd656c3d4ac5a255451bb79119d726ca0ab634a7467713471ab33"
+  },
+  "normalization": "(p(step)-p(parent))/(mean p(4000)-p(parent)), seed mean within task, equal task weights; linear interpolation only between recorded checkpoints; no monotonic repair or clipping of measured curve",
+  "sparse_tasks": [
+    "X",
+    "Y"
+  ],
+  "sparse_note": "X/Y have only parent and4000 action-only endpoints; intermediate prior values are linear interpolation, not measured learning curves.",
+  "historical_eval_denoising_steps": 5,
+  "prototype_serving_denoising_steps": 10,
+  "source_excludes": [
+    "full action update",
+    "visual LoRA",
+    "automatic/forced visual switch",
+    "reduced adaptation data"
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "gpus": [
+    0,
+    1
+  ],
+  "measurement_gpu": 0,
+  "other_owned_gpu_idle": true,
+  "power_limits_w": {
+    "0": 225,
+    "1": 225,
+    "2": 225,
+    "3": 225
+  },
+  "never_set_power_limit": true,
+  "monitor_external_gpus": [
+    2,
+    3
+  ],
+  "deadline_ms": 250,
+  "slo_threshold": 0.99,
+  "controller": "MPS100 timeout-rate feedback target1%, no duty floor",
+  "loads": [
+    {
+      "experts": 1,
+      "load": 0.75,
+      "seconds": 600
+    },
+    {
+      "experts": 2,
+      "load": 0.75,
+      "seconds": 600
+    },
+    {
+      "experts": 4,
+      "load": 0.75,
+      "seconds": 600
+    },
+    {
+      "experts": 8,
+      "load": 0.75,
+      "seconds": 600
+    },
+    {
+      "experts": 1,
+      "load": 0.8,
+      "seconds": 600
+    },
+    {
+      "experts": 2,
+      "load": 0.8,
+      "seconds": 600
+    },
+    {
+      "experts": 4,
+      "load": 0.8,
+      "seconds": 600
+    },
+    {
+      "experts": 8,
+      "load": 0.8,
+      "seconds": 600
+    }
+  ],
+  "smoke_seconds": 60,
+  "retry_once": true,
+  "heartbeat_seconds": 1800,
+  "trace": {
+    "load": 0.7,
+    "experts": 1,
+    "modes": [
+      "A0"
+    ],
+    "capture_seconds": 5,
+    "nsys": "/home/hengyi/.local/opt/nsight-systems-2026.6.1/opt/nvidia/nsight-systems-cli/2026.6.1/bin/nsys",
+    "nvtx_library": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_prototype_v0_20261115/trace_marker.so",
+    "cuda_graph_trace": "node",
+    "trigger": "parent NVTX range evoserve_trace_5s at common request origin; no parent CUDA context",
+    "policy": "mps30",
+    "feedback": false
+  },
+  "task": "75/80percent expert boundary then prototype milestones",
+  "kernel_profile": {
+    "updates": 3,
+    "condition": "training alone after concurrent measurement; excluded from SLO windows"
+  },
+  "milestones": {
+    "gpu_start": "after all measurements and CPU checks",
+    "smoke_seconds": 600,
+    "visual_training": false,
+    "decision_seconds": 30
+  },
+  "prototype_user_confirmed": {
+    "m3_seconds_per_setting": 10800,
+    "m3_order": [
+      "ours",
+      "no_learning",
+      "recompute",
+      "split"
+    ],
+    "same_environment_change_schedule": true,
+    "same_random_seeds": true,
+    "validation_episodes": 50,
+    "validation_gain_formula": "max(0.05, 1.5*sqrt(0.25/n_validation))",
+    "forced_validation_every_training_steps": 1000,
+    "capacity_p99_relative_max": 1.05,
+    "slo": 0.99,
+    "deadline_ms": 250,
+    "predictor": "fixed seven-task mean normalized action-only learning curve + recent real production episodes; fit gain amplitude and time scale at validations",
+    "scheduler_seconds": 30,
+    "visual_training": false,
+    "ranking": {
+      "budgets": [
+        250,
+        500,
+        1000,
+        2000,
+        4000
+      ],
+      "score": "robots * max_L((max(prediction(s+L), production_success) - max(prediction(s), production_success))/L)",
+      "validation_uses": "prediction at current trained steps only",
+      "forced_validation_steps": 1000
+    },
+    "robot_pacing": {
+      "period_seconds": 0.25,
+      "physics_hz": 20,
+      "normal_actions": 5,
+      "returned_horizon": 10,
+      "miss": "continue previous remainder, then zero displacement with previous gripper command",
+      "late_block": "discard",
+      "simulation_overruns": "record; do not stretch request clock; lower robot count during capacity selection",
+      "observation": "latest completed CPU camera observation; record actual capture frame and age; labels are actual actions starting at that frame",
+      "reset": "missed nominal periods remain in SLO denominator",
+      "capacity_gate": "SLO >= .99, P99 <= 1.05 matched-arrival no-simulator baseline, no simulation overrun cycles"
+    }
+  }
+}

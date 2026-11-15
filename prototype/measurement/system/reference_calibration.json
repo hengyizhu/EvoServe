@@ -1,0 +1,5 @@
+{
+  "service_ms": 142.49900977,
+  "source": "/home/hengyi/pi05_night_20261112/systems/stage1/streams_A2_u70_attempt1794474943614694096/calibrations.json",
+  "definition": "mean single request service time, inference alone while trainer idle"
+}

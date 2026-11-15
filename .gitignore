@@ -45,3 +45,16 @@ work/
 
 !/results/pi05_extended_20261109/learning_curves.csv
 !/results/pi05_extended_20261109/comparison_2000_three_seeds.csv
+
+# Small measured prior data; no raw traces or training artifacts.
+!/prototype/configs/prior_observations.csv
+/prototype/measurement/system/runs/
+/prototype/measurement/system/smokes/
+/prototype/measurement/logs/
+/prototype/measurement/task_state/
+/prototype/measurement/failures/
+/prototype/measurement/traces/
+/prototype/measurement/prototype_runs/
+*.nsys-rep
+*.sqlite
+*.so

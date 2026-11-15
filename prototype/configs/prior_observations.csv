@@ -1,0 +1,63 @@
+task,seed,step,success_rate,source,kind
+X,8,0,0.22,parent screening summaries,observed
+X,8,4000,0.7,pi05_adaptive_validate_20261111/results_summary.csv,observed
+Y,8,0,0.0,parent screening summaries,observed
+Y,8,4000,0.44,pi05_adaptive_validate_20261111/results_summary.csv,observed
+book,8,0,0.02,parent screening summaries,observed
+book,8,250,0.0,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,8,500,0.02,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,8,1000,0.14,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,8,2000,0.72,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,8,3000,0.92,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,8,4000,0.98,pi05_loadscan_20261109/lora_book_curve.csv,observed
+book,9,0,0.02,parent screening summaries,observed
+book,9,250,0.0,pi05_night_20261110/learning_curves.csv,observed
+book,9,500,0.06,pi05_night_20261110/learning_curves.csv,observed
+book,9,1000,0.12,pi05_night_20261110/learning_curves.csv,observed
+book,9,2000,0.56,pi05_night_20261110/learning_curves.csv,observed
+book,9,3000,0.86,pi05_night_20261110/learning_curves.csv,observed
+book,9,4000,0.88,pi05_night_20261110/learning_curves.csv,observed
+camera,8,0,0.04,parent screening summaries,observed
+camera,8,1000,0.58,pi05_followon_20261112/B_learning.csv,observed
+camera,8,2000,0.96,pi05_followon_20261112/B_learning.csv,observed
+camera,8,4000,0.84,pi05_followon_20261112/B_learning.csv,observed
+camera,9,0,0.04,parent screening summaries,observed
+camera,9,1000,0.64,pi05_followon_20261112/B_learning.csv,observed
+camera,9,2000,0.96,pi05_followon_20261112/B_learning.csv,observed
+camera,9,4000,0.96,pi05_followon_20261112/B_learning.csv,observed
+drawer,8,0,0.32,parent screening summaries,observed
+drawer,8,250,0.56,pi05_night_20261110/learning_curves.csv,observed
+drawer,8,500,0.58,pi05_night_20261110/learning_curves.csv,observed
+drawer,8,1000,0.68,pi05_night_20261110/learning_curves.csv,observed
+drawer,8,2000,0.74,pi05_night_20261110/learning_curves.csv,observed
+drawer,8,3000,0.86,pi05_night_20261110/learning_curves.csv,observed
+drawer,8,4000,0.86,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,0,0.32,parent screening summaries,observed
+drawer,9,250,0.54,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,500,0.48,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,1000,0.52,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,2000,0.74,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,3000,0.74,pi05_night_20261110/learning_curves.csv,observed
+drawer,9,4000,0.82,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,0,0.02,parent screening summaries,observed
+microwave,8,250,0.06,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,500,0.18,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,1000,0.22,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,2000,0.5,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,3000,0.5,pi05_night_20261110/learning_curves.csv,observed
+microwave,8,4000,0.6,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,0,0.02,parent screening summaries,observed
+microwave,9,250,0.04,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,500,0.08,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,1000,0.28,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,2000,0.46,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,3000,0.52,pi05_night_20261110/learning_curves.csv,observed
+microwave,9,4000,0.7,pi05_night_20261110/learning_curves.csv,observed
+texture,8,0,0.1,parent screening summaries,observed
+texture,8,1000,0.6,pi05_followon_20261112/B_learning.csv,observed
+texture,8,2000,0.82,pi05_followon_20261112/B_learning.csv,observed
+texture,8,4000,0.88,pi05_followon_20261112/B_learning.csv,observed
+texture,9,0,0.1,parent screening summaries,observed
+texture,9,1000,0.56,pi05_followon_20261112/B_learning.csv,observed
+texture,9,2000,0.82,pi05_followon_20261112/B_learning.csv,observed
+texture,9,4000,0.86,pi05_followon_20261112/B_learning.csv,observed

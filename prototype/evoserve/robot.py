@@ -1,0 +1,135 @@
+"""Fixed 250ms arrivals and 20Hz physics. No inference-dependent pacing."""
+from pathlib import Path
+import os,random,sys,time,traceback,queue,threading
+from concurrent.futures import ThreadPoolExecutor
+from .io import RPCClient,save,append,read
+from .core import ActionWindowAssembler,PeriodicActions
+from .simulation import AsyncRenderer
+
+PERIOD=.250
+
+def run(cfg):
+    import numpy as np
+    repo=Path(__file__).resolve().parents[2];sys.path.insert(0,str(repo/'vendor/RLinf'))
+    sys.path.insert(0,str(repo/'experiments/pi05_machine_b_20261115'))
+    from perturbations import transform_image
+    from libero.libero import benchmark,get_libero_path
+    from libero.libero.envs.env_wrapper import ControlEnv
+    from rlinf.envs.sim.libero.utils import quat2axisangle
+    out=Path(cfg['out']);out.mkdir(exist_ok=True,parents=True)
+    suite=benchmark.get_benchmark_dict()['libero_10'](task_order_index=0);task=suite.get_task(cfg['task_id']);states=suite.get_task_init_states(cfg['task_id'])
+    bddl=str(Path(get_libero_path('bddl_files'))/task.problem_folder/task.bddl_file)
+    env=ControlEnv(bddl_file_name=bddl,use_camera_obs=False,has_offscreen_renderer=False,hard_reset=False)
+    renderer=AsyncRenderer(bddl);coord=RPCClient(cfg['coordinator']);pool=ThreadPoolExecutor(max_workers=4)
+    index=0;next_release=None;requests_total=0;requests_sent=0;sim_misses=0;holds=0;last_report=time.monotonic()
+    def raw_observation(view,perturb):
+        obs=view['obs']
+        raw={'observation/image':np.ascontiguousarray(obs['agentview_image'][::-1,::-1]),'observation/wrist_image':np.ascontiguousarray(obs['robot0_eye_in_hand_image'][::-1,::-1]),'observation/state':np.concatenate([obs['robot0_eef_pos'],quat2axisangle(obs['robot0_eef_quat'].copy()),obs['robot0_gripper_qpos']]).astype(np.float32),'prompt':task.language}
+        if perturb:
+            for key in ['observation/image','observation/wrist_image']:raw[key]=transform_image(raw[key],perturb)
+        return raw
+    try:
+        while True:
+            episode=f"r{cfg['robot']}:e{index}";seed=cfg['seed']+cfg['robot']*100000+index
+            reset_start=time.monotonic();np.random.seed(seed);env.seed(seed);env.reset();env.set_init_state(states[(index+cfg['robot']*19)%len(states)])
+            for _ in range(10):env.step([0.,0.,0.,0.,0.,0.,-1.])
+            renderer.submit(episode,0,env.get_sim_state().copy())
+            while renderer.get(episode) is None:time.sleep(.002)
+            # Refresh after renderer construction; startup is outside the clock.
+            if index==0:
+                fresh=time.monotonic();renderer.submit(episode,0,env.get_sim_state().copy())
+                while renderer.get(episode)['captured']<fresh:time.sleep(.002)
+            if index==0:
+                save(out/'ready.json',dict(pid=os.getpid(),renderer='independent OSMesa state',request_period_s=PERIOD,physics_hz=20,returned_actions=10,normal_actions_per_cycle=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
+            while True:
+                assignment=coord.call('begin_episode',expert=cfg['expert'],robot=cfg['robot'],episode=episode)
+                if assignment.get('stop'):return
+                if not assignment.get('wait'):break
+                renderer.submit(episode,0,env.get_sim_state().copy());time.sleep(.01)
+            version=assignment['version'];origin=assignment['origin'];end=assignment['end']
+            if next_release is None:next_release=origin+cfg['phase_s']
+            # Reset/validation barriers never silently stretch the arrival clock.
+            while next_release+PERIOD<=time.monotonic():
+                rid=f"r{cfg['robot']}:period:{round((next_release-origin)/PERIOD)}"
+                coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=None)
+                append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulation_reset_or_episode_barrier',sent=False))
+                requests_total+=1;sim_misses+=1;next_release+=PERIOD
+            assembler=ActionWindowAssembler(episode,version);actions=PeriodicActions();completed=queue.Queue();futures=[];seen_frames=set();reservoir=[];rng=random.Random(seed+211);eligible=0;success=False;stopped=False;cycle=0;episode_time=next_release;tick=0;physics_cpu=0.;episode_misses=0;episode_holds=0
+            def infer(cycle,release,rid,raw,frame,captured):
+                client=RPCClient(cfg['server']);c=RPCClient(cfg['coordinator'])
+                try:
+                    reply=client.call('infer',raw=raw,expert=cfg['expert'],version=version,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
+                    finish=time.monotonic()
+                    if finish<=release+PERIOD:actions.offer(cycle,finish,reply['actions'])
+                    c.call('finish',request_id=rid,finish=finish)
+                    completed.put((cycle,release,finish,frame,raw,reply['cache_ref']))
+                    append(out/'requests.jsonl',dict(request_id=rid,expert=cfg['expert'],version=version,release=release,finish=finish,latency_ms=(finish-release)*1000,observation_frame=frame,observation_age_ms=(release-captured)*1000,sent=True))
+                except Exception:completed.put(('error',traceback.format_exc()))
+                finally:client.close();c.close()
+            def accept_ready():
+                nonlocal eligible
+                for key,source,executed in assembler.collect_ready():
+                    eligible+=1;j=rng.randrange(eligible)
+                    sample=dict(episode=episode,frame=key.frame,version=version,expert=cfg['expert'],raw=source['raw'],cache_ref=source['cache_ref'],actions=np.asarray(executed,dtype=np.float32),action_frames=list(range(key.frame,key.frame+10)))
+                    discarded=None
+                    if len(reservoir)<8:reservoir.append(sample)
+                    elif j<8:discarded=reservoir[j];reservoir[j]=sample
+                    else:discarded=sample
+                    if discarded:coord.call('drop',expert=cfg['expert'],refs=[discarded['cache_ref']])
+            def drain():
+                while not completed.empty():
+                    value=completed.get()
+                    if value[0]=='error':raise RuntimeError(value[1])
+                    _,release,finish,frame,raw,ref=value
+                    if frame in seen_frames or finish>release+PERIOD:
+                        coord.call('drop',expert=cfg['expert'],refs=[ref]);continue
+                    seen_frames.add(frame);assembler.observe(frame,dict(raw=raw,cache_ref=ref));accept_ready()
+            while len(assembler.actions)<cfg['action_budget'] and not success:
+                due=episode_time+tick/20
+                time.sleep(max(0,due-time.monotonic()))
+                if time.monotonic()>=end:stopped=True;break
+                drain()
+                if tick%5==0:
+                    if cycle:actions.boundary(cycle-1,next_release)
+                    state=coord.call('environment',expert=cfg['expert'])
+                    if state['stop']:stopped=True;break
+                    rid=f"r{cfg['robot']}:period:{round((next_release-origin)/PERIOD)}";view=renderer.get(episode)
+                    raw=raw_observation(view,state.get('perturb')) if view else None
+                    lag=time.monotonic()-next_release
+                    behind=lag>=PERIOD or view is None or next_release-view['captured']>=PERIOD
+                    episode_misses+=int(behind);sim_misses+=int(behind)
+                    coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=raw,seed=seed*10000+cycle)
+                    requests_total+=1;futures=[f for f in futures if not f.done()]
+                    if raw is not None and len(futures)<8:
+                        futures.append(pool.submit(infer,cycle,next_release,rid,raw,view['frame'],view['captured']));requests_sent+=1
+                    else:append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulator_unready' if raw is None else 'request_backlog_limit',sent=False))
+                    append(out/'cycles.jsonl',dict(cycle=cycle,nominal_release=next_release,dispatch_lag_ms=lag*1000,simulation_overrun=behind,observation_age_ms=None if view is None else (next_release-view['captured'])*1000))
+                    next_release+=PERIOD;cycle+=1
+                action,hold=actions.next();action=np.asarray(action,dtype=np.float32);holds+=int(hold);episode_holds+=int(hold)
+                t=time.thread_time();env.step(action.tolist());physics_cpu+=time.thread_time()-t;assembler.actions.append(action.copy());accept_ready()
+                success=bool(env.check_success())
+                if tick%5==1:renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
+                tick+=1
+                if time.monotonic()-last_report>=5:
+                    save(out/'status.json',dict(requests_total=requests_total,requests_sent=requests_sent,simulation_overrun_cycles=sim_misses,hold_ticks=holds,wall_elapsed_s=time.monotonic()-origin,actual_request_rate=requests_sent/max(1e-6,time.monotonic()-origin)))
+                    last_report=time.monotonic()
+            for f in futures:f.result()
+            drain();coord.call('drop',expert=cfg['expert'],refs=[v['cache_ref'] for v in assembler.pending.values()])
+            for sample in reservoir:
+                if success and not stopped:coord.call('window',**sample,success=True)
+                else:coord.call('drop',expert=cfg['expert'],refs=[sample['cache_ref']])
+            if stopped:coord.call('abort_episode',expert=cfg['expert'],episode=episode);break
+            row=dict(episode=episode,episode_index=index,expert=cfg['expert'],robot=cfg['robot'],version=version,success=success,steps=len(assembler.actions),seconds=time.monotonic()-episode_time,sim_cpu_seconds=physics_cpu,simulation_overrun_cycles=episode_misses,hold_ticks=episode_holds,seed=seed,epoch_at_start=assignment['epoch'],finished=time.monotonic(),reset_seconds=episode_time-reset_start)
+            coord.call('end_episode',**row);append(out/'episodes.jsonl',row);index+=1
+    finally:
+        save(out/'final_counters.json',dict(requests_total=requests_total,requests_sent=requests_sent,simulation_overrun_cycles=sim_misses,hold_ticks=holds))
+        pool.shutdown(wait=False,cancel_futures=True);renderer.close();env.close();coord.close()
+
+
+def main():
+    import argparse
+    p=argparse.ArgumentParser();p.add_argument('--config',required=True);a=p.parse_args();cfg=read(a.config);os.sched_setaffinity(0,set(cfg['cpus']))
+    try:run(cfg)
+    except Exception:save(Path(cfg['out'])/'failure.json',dict(error=traceback.format_exc()));raise
+
+if __name__=='__main__':main()
