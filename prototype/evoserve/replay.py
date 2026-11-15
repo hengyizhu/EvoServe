@@ -15,7 +15,7 @@ class ArrivalReplay:
         self.rows=[json.loads(line) for line in (source/'arrivals.jsonl').read_text().splitlines()]
         with (source/'replay_corpus.pkl').open('rb') as f:self.corpus=pickle.load(f)
         self.queues={r:queue.Queue() for r in {v['robot'] for v in self.rows}}
-        self.errors=[];self.threads=[]
+        self.errors=[];self.threads=[];self.dispatched=0;self.count_lock=threading.Lock()
 
     def start(self):
         for robot,q in self.queues.items():
@@ -47,6 +47,7 @@ class ArrivalReplay:
                 client=clients.setdefault(e,RPCClient(self.run.sockets/f's{self.run.expert_server[e]}'))
                 corpus=[v for (expert,_),v in sorted(self.corpus.items()) if expert==e]
                 raw=corpus[row.get('corpus_index',0)%len(corpus)]
+                with self.count_lock:self.dispatched+=1
                 client.call('infer',raw=raw,expert=e,version=f'{e}:v0',seed=row.get('seed') or self.run.cfg['seed'],episode=f'replay:{robot}',frame=0,request_id=key)
                 finish=time.monotonic();self.run.ledger.finish(key,finish)
                 append(self.run.out/'replay_requests.jsonl',dict(request_id=key,release=release,finish=finish,expert=e,robot=robot))

@@ -58,6 +58,7 @@ def run(cfg):
             def infer(cycle,release,rid,raw,frame,captured):
                 client=RPCClient(cfg['server']);c=RPCClient(cfg['coordinator'])
                 try:
+                    append(out/'dispatches.jsonl',dict(request_id=rid,release=release,dispatched=time.monotonic(),expert=cfg['expert'],robot=cfg['robot']))
                     reply=client.call('infer',raw=raw,expert=cfg['expert'],version=version,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
                     finish=time.monotonic()
                     if finish<=release+PERIOD:actions.offer(cycle,finish,reply['actions'])
