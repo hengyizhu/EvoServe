@@ -1,0 +1,17 @@
+{
+  "kind": "table_texture",
+  "cells": 4,
+  "colors": [
+    [
+      245,
+      15,
+      180
+    ],
+    [
+      0,
+      245,
+      80
+    ]
+  ],
+  "target_prompt": "put both moka pots on the stove"
+}

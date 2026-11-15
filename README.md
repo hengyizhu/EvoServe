@@ -1,5 +1,7 @@
 # EvoServe — π0.5 serving / training reproduction
 
+**Machine B learning setup:** [installation, pinned environment and1000-step book check](machine_b/README.md). This branch adds a learning-only migration path for a CPU-contended dual-A6000 host.
+
 Private research snapshot for migrating the A6000 serving experiments to an A100 allocation. **No IG-VLA/GIST experiments, model weights, datasets, prefix caches, checkpoints, raw logs or raw result directories are included.** Curated numerical references are [`reference/summary.csv`](reference/summary.csv) and the explicitly requested summaries in [`results/`](results/). The running A6000 experiment directories were read, not modified or restarted.
 
 ## Layout

@@ -6,7 +6,11 @@ def materialize(work,model,data,python):
  work=Path(work).resolve();model=Path(model).resolve();data=Path(data).resolve();work.mkdir(parents=True,exist_ok=True)
  if (work/'workspace.json').exists():raise FileExistsError('Use a new workspace; refusing to overwrite an experiment')
  mappings={'/home/hengyi/vla_followup_20261020/venv/bin/python':str(python),'/home/hengyi/.cache/huggingface/lerobot/physical-intelligence/libero':str(data),'/var/tmp/hengyi_pi05_extended_20261109':str(work/'pi05_extended_20261109')}
- for src in (REPO/'experiments').iterdir():mappings['/home/hengyi/'+src.name]=str(work/src.name)
+ for src in (REPO/'experiments').iterdir():
+  mappings['/home/hengyi/'+src.name]=str(work/src.name)
+  for parent in ['Experiments','Environment-and-Earlier-Runs']:
+   mappings['/home/hengyi/Workspace/01_VLA-Serving/'+parent+'/'+src.name]=str(work/src.name)
+ mappings['/home/hengyi/Workspace/05_Models-and-Dependencies/huggingface/lerobot/physical-intelligence/libero']=str(data)
  changes=[]
  for src in (REPO/'experiments').rglob('*'):
   if not src.is_file():continue
@@ -17,6 +21,8 @@ def materialize(work,model,data,python):
    text=re.sub(r'(?P<op><|>=)84\b',lambda m:m['op']+"int(__import__('os').environ['VLA_FULL_SM_COUNT'])",text)
    if 'os.sched_setaffinity(' in text:
     text=text.replace('os.sched_setaffinity(','__import__("vla_portability").set_affinity(')
+   text=re.sub(r"torch\.set_num_threads\(4\)", "torch.set_num_threads(int(__import__('os').environ.get('VLA_TORCH_THREADS','4')))",text)
+   text=re.sub(r"(\b(?:OMP_NUM_THREADS|MKL_NUM_THREADS|OPENBLAS_NUM_THREADS)\s*=\s*)[\"']4[\"']",lambda m:m[1]+"__import__('os').environ.get('VLA_TORCH_THREADS','4')",text)
    text=text.replace('assert GPU in [0,1]','assert GPU in __import__("vla_portability").allowed_gpus()')
   dst.write_text(text)
   if text!=original:changes.append(str(dst.relative_to(work)))

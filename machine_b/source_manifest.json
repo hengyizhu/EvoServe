@@ -1,0 +1,78 @@
+[
+  {
+    "destination": "experiments/pi05_machine_b_20261115/perturbations.py",
+    "sha256": "1afba35b7af18b252ef4f0c4d6d0f378748eb66cfa0199397ee72e4696a16582"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/task_samples.py",
+    "sha256": "bb97efbd62418c95a8324d1fd633d397356327e22462c2e6a9456427692a1576"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/scene_perturb.py",
+    "sha256": "4e26f5d993ad85ccce646116e552ffbde64bbbec671e21d7fd5ad0b48accdd30"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/train_book.py",
+    "sha256": "ff18f2c98d741a2b56cc6bd6defe7c8225c7d982aa110d9cfd0c5062e18a3592"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/cache_engine.py",
+    "sha256": "9762ee3df573fab400619b750ce924c1e77a219062efa49413364e1c3d488753"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/common.py",
+    "sha256": "99619a3411347fa3587d44a48699fd647aad8004b73eb1804e81ae6b58bde3dc"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/eval_worker.py",
+    "sha256": "1d76f2db41f8585fffb993fd70be7203bb25bde01f687de19e3f05129674ad95"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/splits/new_Y_task4.json",
+    "sha256": "56664281cceaa01776a6977303e67d48bc1aadb5842771c0c90b1a294248fa77"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/splits/new_X_task1.json",
+    "sha256": "efa39e4fed13104f1744709ab287de9b060eff5ab3be9ff17bf8e42a53946cb3"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/tasks/X.json",
+    "sha256": "e07c853932f45ea2cdb091700d4c7783f958025cf7f2210218e0507b27cf532c"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/tasks/texture.json",
+    "sha256": "1f3da7eb4f02d19cd2299092e8aa5c23b777e35a0dc31c2ec660cd125ed1a334"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/tasks/Y.json",
+    "sha256": "d15903f9724f7c3e4c077e6492cd0c8874962ff3000712386fca5e2199c5b08a"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/tasks/camera.json",
+    "sha256": "4b161862212fec0b1cfcc53c7f9cd26a8e40ad19b2c13593dd4f1f2fca25dc84"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_X_task1_s08.json",
+    "sha256": "cbd701ac103408c41433700c32ad49ab24449633258cce67af989f81f917ea11"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_texture_s08.json",
+    "sha256": "5a8be319615ad1be7b199fbdf9ac1b40bbd660903e459e5a2e7051d063ed2daa"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_texture_s09.json",
+    "sha256": "c370b707e8a81d5d5fa3846748d74453603791bd9a92b65c52f0b826a7e1c035"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_camera_s09.json",
+    "sha256": "8dfab1b0d9f799113616deb442415a3b11947771424da33bbb388394dfe8b191"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_camera_s08.json",
+    "sha256": "d7ff0e2f53c282b79030e79cd9aa1bfc3d6648c1dd259904dce285fe75f6b550"
+  },
+  {
+    "destination": "experiments/pi05_machine_b_20261115/sequences/new_Y_task4_s08.json",
+    "sha256": "3022f34a88d3cc7e756b9e3fe18431f2926c8722ace09b75fad37b67abe4fb2b"
+  }
+]

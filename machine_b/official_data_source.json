@@ -1,0 +1,32 @@
+{
+  "repo": "yifengzhu-hf/LIBERO-datasets",
+  "revision": "f13aa24a3da8c43c7225569f28c562979fa0e35a",
+  "files": [
+    {
+      "type": "file",
+      "oid": "a95cad44c1b7c48d648edaa1308ef25022e38561",
+      "size": 2061429892,
+      "lfs": {
+        "oid": "e329bb21a8ded3457854faf6a23513c90cb4b34f0e40f3f4e9e70451fc9ba504",
+        "size": 2061429892,
+        "pointerSize": 135
+      },
+      "xetHash": "47ff023e129e6d4f6f920d08c68bd006e809b24900ace5f756c17c42d20610bb",
+      "path": "libero_10/KITCHEN_SCENE8_put_both_moka_pots_on_the_stove_demo.hdf5"
+    },
+    {
+      "type": "file",
+      "oid": "8e352d78e751ddca5ec59037dfd0038a2b9ffc5e",
+      "size": 1268066750,
+      "lfs": {
+        "oid": "75988131f8f443d68108bbfaacc22dab229ece93f141362524e69a2c49a23516",
+        "size": 1268066750,
+        "pointerSize": 135
+      },
+      "xetHash": "4cddef7f24b5e82d2df57f8983aa3152f8378d15972718e9c05bbcdd14ff13a0",
+      "path": "libero_10/LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate_demo.hdf5"
+    }
+  ],
+  "official_source": "https://github.com/Lifelong-Robot-Learning/LIBERO",
+  "download_after_A": true
+}
