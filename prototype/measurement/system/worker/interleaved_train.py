@@ -130,7 +130,8 @@ def main():
  tr.total_steps=4000;assert sum(p.numel() for _,p in tr.pairs)==20876320
  tr.current_parts=[];tr.parity();tr.current_parts=[]
  if os.environ.get('EXPERT_COUNT'):
-  from experts import install
+  if os.environ.get('DYNAMIC_BANK')=='1':from dynamic_experts import install
+  else:from experts import install
   bank=install(tr,sys.modules[__name__])
   for key in set(tr.micros[0]):
    with torch.no_grad():
@@ -150,8 +151,14 @@ def main():
     profile_training(tr,OUT/cfg['name']);save(OUT/f'train_done_{index:03d}.json',{'complete':True});continue
    if cfg['op']=='calibrate':save(OUT/f'train_done_{index:03d}.json',{'complete':True});continue
    if os.environ.get('SLO_FEEDBACK')=='1':
-    from feedback import Feedback
-    if not hasattr(tr,'feedback'):tr.feedback=Feedback(OUT)
+    if os.environ.get('DYNAMIC_BANK')=='1':
+     from adaptive_feedback import Feedback
+     tr.feedback=Feedback(OUT)
+    else:
+     from feedback import Feedback
+     if not hasattr(tr,'feedback'):tr.feedback=Feedback(OUT)
+   if cfg.get('reset_expert_states'):
+    restore(tr,tr.initial_weights);tr.step_id=0
    origin=cfg['origin_ns'];end=origin+round(cfg['duration_s']*1e9);out=OUT/cfg['name'];out.mkdir(exist_ok=True);cap=cfg.get('rate_cap',0);next_step=origin
    time.sleep(max(0,(origin-time.monotonic_ns())/1e9));rows=[]
    if cfg.get('round')==1 and cfg['mode']!='baseline':tr.measure_origin=origin
@@ -165,7 +172,12 @@ def main():
      if cap and time.monotonic_ns()<next_step:time.sleep(min(.002,(next_step-time.monotonic_ns())/1e9));continue
      if os.environ.get('SLO_FEEDBACK')=='1' and not tr.feedback.ready(out):
       time.sleep(.002);continue
+     if os.environ.get('DYNAMIC_BANK')=='1':
+      tr.bank.n=tr.feedback.experts if os.environ.get('SLO_FEEDBACK')=='1' else int(os.environ.get('INITIAL_EXPERTS','1'))
      row=tr.next_step()
+     if row is not None and os.environ.get('DYNAMIC_BANK')=='1':
+      row['duty']=tr.feedback.duty if os.environ.get('SLO_FEEDBACK')=='1' else 1.
+      row['control_window_end_ns']=tr.feedback.last_window if os.environ.get('SLO_FEEDBACK')=='1' else 0
      if row is None:time.sleep(.002);continue
      if cap:next_step=max(next_step+round(1e9/cap),row['start_ns']+round(1e9/cap))
      rows.append(row);append(out/'steps.jsonl',row)

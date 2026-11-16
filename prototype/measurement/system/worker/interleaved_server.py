@@ -37,9 +37,7 @@ class Serving(Parent):
   from gil_probe import sample
   gil_wait=sample();out,row=super().infer(i);row['gil_acquire_sample_ms']=gil_wait;row.update(self.packer.stats);row.update(self.input_parts);row['input_h2d_cuda_ms']=self.packer.h2d_start.elapsed_time(self.packer.h2d_end);return out,row
 
-def schedule(cfg):
- origin=cfg['origin_ns'];rate=cfg.get('global_rate',cfg['rate']);count=math.ceil(cfg['duration_s']*rate-1e-10);offset=cfg.get('source_offset',0);stride=cfg.get('source_stride',1);clients=cfg.get('clients',4)
- return [{'request_id':i,'client_id':i%clients,'nominal_release_ns':origin+round(i/rate*1e9),'deadline_ns':origin+round(i/rate*1e9)+250_000_000} for i in range(offset,count,stride)]
+from arrival_plan import schedule
 def wait_file(p):
  while not p.exists():time.sleep(.02)
  return json.loads(p.read_text())
@@ -59,9 +57,10 @@ def main():
    if cfg['op']=='activate':save(OUT/f'server_done_{index:03d}.json',{'complete':True,'next_id':ident});continue
    if cfg['op']=='calibrate':
     rows=[s.infer(i)[1] for i in range(100)];save(OUT/'calibration.json',{k:stats([r[k] for r in rows]) for k in ['service_ms','model_ms','I_PREFIX_ms','I_ACTION_ms']});save(OUT/f'server_done_{index:03d}.json',{'complete':True});continue
+   if cfg.get('reset_expert_states'):source_counts[cfg['variant']]=0
    mode=cfg['mode'];variant=cfg['variant'];source_counts.setdefault(variant,0);out=OUT/cfg['name'];out.mkdir(exist_ok=True);origin=cfg['origin_ns'];end=origin+round(cfg['duration_s']*1e9);plan=schedule(cfg);rows=[]
    publisher=None
-   if os.environ.get('SLO_FEEDBACK')=='1':
+   if os.environ.get('SLO_FEEDBACK')=='1' or os.environ.get('DYNAMIC_BANK')=='1':
     from deadline_feedback import Publisher
     publisher=Publisher(OUT,out,plan,origin,end)
    for req in plan:
