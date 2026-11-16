@@ -95,9 +95,9 @@ class Model:
 
 
 class GraphModel(Model):
-    def __init__(self,assets):
+    def __init__(self,assets,stream_priority=-1):
         super().__init__(assets,1);t=self.torch
-        self.stream=t.cuda.Stream(priority=-1)
+        self.stream=t.cuda.Stream(priority=stream_priority)
         obs,_=self.prepare(self.dummy());self.static=self.obs_map(lambda x:x.to('cuda'),obs)
         self.noise=t.randn((1,10,32),device='cuda');self.graph=t.cuda.CUDAGraph()
         self.events=[t.cuda.Event(enable_timing=True,external=True) for _ in range(12)]
@@ -147,15 +147,27 @@ class GraphModel(Model):
         self.operator_events[1].record();return x
 
     def infer_operator(self,expert,seed):
-        t=self.torch;start=time.monotonic_ns()
+        t=self.torch;start=time.monotonic_ns();begin=t.cuda.Event(enable_timing=True);end=t.cuda.Event(enable_timing=True)
         with t.cuda.stream(self.stream),t.inference_mode():
+            begin.record()
             for n,p in self.pairs.items():p.copy_(self.operator_slots[expert][n])
             self.loaded=(expert,'operator')
             self.operator_noise.copy_(t.randn((1,10,32),device='cuda',generator=t.Generator(device='cuda').manual_seed(seed)))
             self.operator_graph.replay()
-            result=self.model.decode_actions(self.operator_result,self.static.state).cpu()
-            self.operator_events[-1].synchronize()
-        return result[0].numpy(),dict(operator_gpu_ms=self.operator_events[0].elapsed_time(self.operator_events[1]),operator_wall_ms=(time.monotonic_ns()-start)/1e6,operator_recomputed_prefix=False)
+            decoded=self.model.decode_actions(self.operator_result,self.static.state);end.record();result=decoded.cpu()
+            end.synchronize()
+        return result[0].numpy(),dict(operator_gpu_ms=begin.elapsed_time(end),operator_denoise_ms=self.operator_events[0].elapsed_time(self.operator_events[1]),operator_wall_ms=(time.monotonic_ns()-start)/1e6,operator_recomputed_prefix=False)
+
+    def infer_remote_operator(self,packet,expert,seed):
+        t=self.torch;start=time.monotonic_ns();mask,kv,state=packet
+        begin=t.cuda.Event(enable_timing=True);end=t.cuda.Event(enable_timing=True)
+        with t.cuda.stream(self.stream),t.inference_mode():
+            begin.record()
+            for dst,src in zip(self.leaves(self.prefix),self.leaves((mask,kv))):dst.copy_(src,non_blocking=True)
+            self.static.state.copy_(state,non_blocking=True);end.record()
+        result,timing=self.infer_operator(expert,seed)
+        timing.update(operator_h2d_ms=begin.elapsed_time(end),operator_total_wall_ms=(time.monotonic_ns()-start)/1e6)
+        return result,timing
 
     def work(self):
         t=self.torch;self.events[0].record()
@@ -177,7 +189,7 @@ class GraphModel(Model):
         self.slots.pop((expert,version),None)
         if self.loaded==(expert,version):self.loaded=None
 
-    def infer(self,raw,expert,version,seed):
+    def infer(self,raw,expert,version,seed,prefix_hook=None):
         t=self.torch;start=time.monotonic_ns()
         obs,_=self.prepare(raw)
         with t.cuda.stream(self.stream),t.inference_mode():
@@ -190,6 +202,7 @@ class GraphModel(Model):
                 if t.is_tensor(a):a.copy_(b,non_blocking=True)
             self.noise.copy_(t.randn((1,10,32),device='cuda',generator=t.Generator(device='cuda').manual_seed(seed)))
             self.graph.replay()
+            if prefix_hook is not None:prefix_hook(self.prefix,self.static.state,self.events[1])
             actions=self.model.decode_actions(self.result,self.static.state).cpu()
             self.events[-1].synchronize()
         return actions[0].numpy(),dict(start_ns=start,finish_ns=time.monotonic_ns(),prefix_ms=self.events[0].elapsed_time(self.events[1]),denoise_ms=self.events[1].elapsed_time(self.events[-1]))

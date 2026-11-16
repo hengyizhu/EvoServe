@@ -1,11 +1,11 @@
 """Real fixed-period simulator against a CPU fake server (timing test, no quality claim)."""
-import argparse,os,sys,time,tempfile,subprocess,json
+import argparse,os,sys,time,tempfile,subprocess,json,threading
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from evoserve.io import RPCServer,save,wait_file
 from evoserve.core import DeadlineLedger
 import numpy as np
-p=argparse.ArgumentParser();p.add_argument('--assets',required=True);p.add_argument('--osmesa-lib',required=True);p.add_argument('--out',required=True);p.add_argument('--seconds',type=int,default=35);p.add_argument('--operator',action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--assets',required=True);p.add_argument('--osmesa-lib',required=True);p.add_argument('--out',required=True);p.add_argument('--seconds',type=int,default=35);p.add_argument('--operator',action='store_true');p.add_argument('--remote-operator',action='store_true');a=p.parse_args();a.operator=a.operator or a.remote_operator
 out=Path(a.out);out.mkdir(parents=True,exist_ok=True);sock=Path(tempfile.mkdtemp(prefix='ep_cpu_'));clock={};ledger=DeadlineLedger();episodes=[];takeovers=[];windows=[];operator_requests=0
 def coord(m):
  op=m['op']
@@ -25,7 +25,15 @@ def serve(m):
  operator_requests+=int(m.get('operator',False))
  time.sleep(.15)
  block=np.tile(np.array([0,0,0,0,0,0,-1],np.float32),(10,1))
- return dict(actions=block,operator_actions=block.copy() if m.get('operator') else None,cache_ref=None)
+ ref=None
+ if a.remote_operator and m.get('operator'):
+  path=out/'operator_results'/f"{m['request_id']}.json"
+  ref=dict(path=str(path),request_id=m['request_id'])
+  def complete():
+   time.sleep(.03 if operator_requests%5 else .14)
+   save(path,dict(status='complete',request_id=m['request_id'],actions=block.tolist()))
+  threading.Thread(target=complete,daemon=True).start()
+ return dict(actions=block,operator_actions=block.copy() if m.get('operator') and not a.remote_operator else None,operator_ref=ref,cache_ref=None)
 c=RPCServer(sock/'coord',coord);s=RPCServer(sock/'serve',serve)
 cfg=dict(out=str(out/'robot'),coordinator=str(sock/'coord'),server=str(sock/'serve'),expert=3,task_id=3,robot=0,seed=20261108,control_hz=20,action_budget=600,cpus=[16,17],phase_s=0,operator_enabled=a.operator,stagnation_distance_m=.002)
 save(out/'config.json',cfg)
@@ -42,6 +50,10 @@ try:
   assert takeovers and operator_requests>0,'operator did not take over'
   assert windows and all(w['data_source']=='operator_correction' and w['action_sources']==['operator']*10 for w in windows),'correction alignment invalid'
   assert all(not e['autonomous_success'] for e in episodes if e['intervened'])
+ if a.remote_operator:
+  responses=[json.loads(x) for x in (out/'robot/operator_responses.jsonl').read_text().splitlines()]
+  assert any(not x['ontime'] for x in responses) and any(x['ontime'] for x in responses)
+  assert stat['slo']>=.99,stat
  save(out/'summary.json',dict(state='passed',operator_enabled=a.operator,takeovers=len(takeovers),operator_requests=operator_requests,accepted_correction_windows=len(windows),autonomous_successes=sum(e['autonomous_success'] for e in episodes),fake_server=True,no_learning_or_success_claim=True,episodes=len(episodes),counters=counters,**stat));print(json.dumps(stat))
 finally:
  if child.poll() is None:child.terminate();child.wait(timeout=10)

@@ -28,3 +28,19 @@ def sha256(path):
     with Path(path).open('rb') as f:
         for chunk in iter(lambda:f.read(4*1024**2),b''):digest.update(chunk)
     return digest.hexdigest()
+
+
+def operator_token(source, ident):
+    return hashlib.sha256(f'{source}:{ident}'.encode()).hexdigest()[:32]
+
+
+def wait_operator_result(reference, deadline):
+    import time,json
+    path=Path(reference['path'])
+    while time.monotonic()<=deadline:
+        if path.exists():
+            result=json.loads(path.read_text())
+            if result['request_id']!=reference['request_id']:raise ValueError('Operator result/request mismatch')
+            path.unlink(missing_ok=True);return result
+        time.sleep(.0005)
+    return dict(status='operator_deadline_miss')

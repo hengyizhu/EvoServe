@@ -8,7 +8,10 @@ presence of this code does not mean that M1/M2/M3 passed.
 
 ## Fixed protocol
 
-- Machine A: GPU 0/1 only, read-only checks of **225 W** power limits; continuously
+- Machine A: GPU 0/1 for the experiment; M1/M2 production and training on GPU0,
+  auxiliary simulated human on GPU1. M3 may borrow an idle GPU2/3 for the operator,
+  otherwise GPU1 uses the lowest-priority CUDA stream. Placement is fixed across
+  the four settings. Read-only checks of **225 W** power limits; continuously
   record GPU 2/3 external workload and host CPU pressure. No power-setting commands.
 - Every robot has a **250 ms wall-clock request period** and 20 Hz physics.
   Latest completed camera observations are submitted at the fixed releases.
@@ -167,10 +170,11 @@ Take over until episode end when either condition first holds:
 
 The next fixed-period request obtains operator actions. Pending old production
 commands are discarded at takeover; hold pose until a timely operator block
-arrives. Production inference continues at 4 requests/s. On the same GPU, a
-separate suffix-only graph uses its just-computed frozen VLM prefix and the
-operator's action weights. This extra computation and cache export are included
-in the request's deadline latency; per-request operator time is also logged.
+arrives. Production inference continues at 4 requests/s. A separate suffix-only
+graph on the auxiliary GPU uses the early exported frozen VLM prefix and the
+operator's action weights. Source export overhead remains in production latency;
+operator computation is asynchronous and separately accounted. The legacy
+same-GPU path is retained only for reproducing the original diagnostic results.
 The operator does not update the learner's weights directly. GPU preflight
 compares this reused-prefix path with a full operator forward and verifies that
 switching back restores production output exactly.
@@ -191,3 +195,34 @@ and rates per expert; `takeovers.jsonl` records the trigger and frame. A one-hou
 M1 run is a verification budget, not an asserted success-rate improvement.
 The data-source mode remains simulated correction until Machine B supplies
 reinforcement-learning evidence; RL is not enabled by this change.
+
+## Auxiliary operator placement (2026-11-15 amendment)
+
+Set `operator_gpu: 1` and `namespace: remote_operator_v1` in the campaign config.
+Previous same-GPU results remain in their original run/state directories. Production
+prefix completion events release KV plus state through a bounded host-memory ring
+before production denoising finishes. The auxiliary worker uses an action-only
+CUDA Graph; it does not recompute the VLM. Production response completion defines
+its SLO independently of operator completion. Late operator actions are discarded;
+operator delays and holds remain visible in simulator logs and never become false
+corrective labels. Auxiliary GPU model memory, transfers and execution costs are
+measured, not treated as free in the artifact.
+
+`operator_hourly.csv` records takeovers, operator GPU seconds (H2D, parameter load,
+noise generation, suffix graph, decode), H2D separately, source D2H and host-copy
+seconds, and late/dropped corrections. Raw operator requests also separate denoising
+from total GPU execution. GPU2/3 external workloads and 225 W limits are logged.
+Identical M3 placement does not imply identical realized takeover counts: report
+actual counts and GPU time for each of the four methods.
+
+```bash
+# CPU transport test deliberately includes late operator replies.
+CUDA_VISIBLE_DEVICES='' python prototype/tools/probe_robot_cpu.py \
+  --assets /path/to/assets --osmesa-lib /path/to/osmesa/lib \
+  --out /path/to/probe --remote-operator
+
+# Requires BOTH GPU0/1 idle; tests early KV delivery, action parity and overlap.
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=prototype python prototype/tools/remote_operator_preflight.py \
+  --assets /path/to/assets --operators prototype/configs/operators.machine_a.json \
+  --out /path/to/remote-preflight
+```

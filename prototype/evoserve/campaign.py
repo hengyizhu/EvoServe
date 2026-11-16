@@ -6,9 +6,9 @@ from .io import read,save
 class Campaign:
     def __init__(self,root,cfg):
         self.root=Path(root);self.cfg=cfg;self.repo=Path(__file__).resolve().parents[2]
-        self.out=self.root/'prototype_runs';self.out.mkdir(exist_ok=True)
-        self.states=self.root/'prototype_task_state';self.states.mkdir(exist_ok=True)
-        self.graph_available=False
+        self.out=self.root/('prototype_runs'+('_'+cfg['namespace'] if cfg.get('namespace') else ''));self.out.mkdir(exist_ok=True)
+        self.namespace=cfg.get('namespace','');self.states=self.root/('prototype_task_state'+('_'+self.namespace if self.namespace else ''));self.states.mkdir(exist_ok=True)
+        self.graph_available=False;self.capacity_path=self.root/('capacity'+('_'+cfg['namespace'] if cfg.get('namespace') else '')+'.json')
         self.operator_manifest=Path(cfg.get('operator_manifest',self.repo/'prototype/configs/operators.machine_a.json'))
         self.operators=read(self.operator_manifest)['operators']
         self.env=dict(os.environ,PYTHONPATH=str(self.repo/'prototype'),OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
@@ -63,6 +63,9 @@ class Campaign:
                 env=dict(self.env,CUDA_VISIBLE_DEVICES='0')
                 self.execute([sys.executable,str(self.repo/'prototype/tools/gpu_preflight.py'),'--assets',self.cfg['assets'],'--operators',str(self.operator_manifest),'--out',str(out/'data')],out,env,900)
                 result=read(out/'data/summary.json');assert result['state']=='passed'
+                if self.cfg.get('operator_gpu') is not None:
+                    self.execute([sys.executable,str(self.repo/'prototype/tools/remote_operator_preflight.py'),'--assets',self.cfg['assets'],'--operators',str(self.operator_manifest),'--out',str(out/'remote')],out/'remote_process',env,900)
+                    assert read(out/'remote/summary.json')['state']=='passed'
                 self.record(name,'passed',raw=str(out));return True
             except Exception:
                 self.graph_available=self.graph_available or read(out/'data/graph_summary.json',{}).get('state')=='passed'
@@ -70,6 +73,7 @@ class Campaign:
         self.record(name,'skipped',reason='GPU preflight failed twice; dependent GPU milestones not started',graph_available=self.graph_available,raw=str(out));return False
     def setting(self,method='ours',robots=None,gpus=None,seconds=600,changes=None,**extra):
         robots=robots or [3]
+        if self.cfg.get('operator_gpu') is not None:extra.setdefault('operator_gpu',self.cfg['operator_gpu'])
         return dict(assets=self.cfg['assets'],prior=str(self.repo/'prototype/configs/learning_prior.json'),osmesa_lib=self.cfg['osmesa_lib'],gpus=gpus or [0],expert_ids=list(dict.fromkeys(robots)),robot_experts=robots,method=method,seconds=seconds,seed=self.cfg['seed'],action_budget=600,changes=changes or [],request_period_s=.25,operators={str(e):self.operators[str(e)] for e in set(robots)},stagnation_distance_m=.002,**extra)
     def trial(self,name,cfg,gate=None):
         old=read(self.states/(name+'.json'))
@@ -77,7 +81,7 @@ class Campaign:
         for attempt in [1,2]:
             out=self.out/f'{name}_{attempt}_{time.time_ns()}'
             try:
-                self.wait_idle([0,1]);self.status(name,attempt=attempt)
+                self.wait_idle(sorted(set([0,1]+([] if cfg.get('operator_gpu') is None else [cfg['operator_gpu']]))));self.status(name,attempt=attempt)
                 config=out.with_suffix('.json');save(config,cfg)
                 self.execute([sys.executable,'-u','-m','evoserve.runtime','--config',str(config),'--out',str(out/'run')],out,timeout=cfg['seconds']+1200)
                 result=read(out/'run/summary.json');assert result['state']=='complete'
@@ -96,7 +100,7 @@ class Campaign:
         if learning and not sum(x['training_steps'] for x in result['expert_results'].values()):return 'no actual training update from successful serving episodes'
         if slo and (result.get('slo') or 0)<.99:return 'SLO below 99%'
     def capacity(self):
-        existing=read(self.root/'capacity.json')
+        existing=read(self.capacity_path)
         if existing:return existing
         rows=[]
         # Screen all N=1..6 at fixed 4 requests/s/robot, then verify largest
@@ -119,7 +123,7 @@ class Campaign:
             passed=(live.get('slo') or 0)>=.99 and (replay.get('slo') or 0)>=.99 and not live.get('simulation_overrun_cycles') and p is not None and b is not None and p<=1.05*b
             verified.append(dict(robots=n,passed=passed,live=live['raw'],replay=replay['raw'],p99_ms=p,baseline_p99_ms=b,slo=live.get('slo')))
         result=dict(screens=rows,verification=verified,largest_verified_robots=max([r['robots'] for r in verified if r['passed']],default=0),searched_robots=list(range(1,7)),request_rate_per_robot=4,p99_ratio_limit=1.05,slo_threshold=.99,power_limit_w=225)
-        save(self.root/'capacity.json',result);return result
+        save(self.capacity_path,result);return result
     def run(self):
         assert read(self.root/'measurements_complete.json') is not None,'Measurements must finish before prototype GPU work'
         if not self.preflight():
@@ -143,14 +147,25 @@ class Campaign:
         self.report()
         if read(self.root/'milestones/M1.json')['state']!='passed' or m2['state']!='complete':
             self.record('M3','blocked',reason='M1/M2 prerequisites not demonstrated; no 12-hour run started');return
+        # Fix auxiliary placement once for all four M3 conditions, without evicting anyone.
+        operator_choice=None
+        if self.cfg.get('operator_gpu') is not None:
+            placement_path=self.root/'M3_operator_placement.json';placement=read(placement_path)
+            if placement:operator_choice=placement['operator_gpu']
+            else:
+                operator_choice=1
+                for g in [2,3]:
+                    active=subprocess.check_output(['nvidia-smi',f'--id={g}','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
+                    if not active:operator_choice=g;break
+                save(placement_path,dict(operator_gpu=operator_choice,stream_priority=0,same_placement_for_all_methods=True,separate_accounting=['takeovers','operator_gpu_seconds','operator_h2d_seconds']))
         ours_ok=False
         for method in ['ours','no_learning','recompute','split']:
             if method!='ours' and not ours_ok:
                 self.record('M3_'+method,'blocked',reason='ours did not pass; baseline long run not started');continue
             def changes(at):return [dict(expert=3,at_s=at,perturb=dict(kind='exposure',factor=.05)),dict(expert=5,at_s=at,perturb=dict(kind='camera_shift',fraction=.25,both_cameras=True))]
-            smoke=self.trial('M3_'+method+'_smoke',self.setting(method,robots,[0,1],600,changes(300)),lambda x:self.health(x,learning=method!='no_learning',slo=True))
+            smoke=self.trial('M3_'+method+'_smoke',self.setting(method,robots,[0,1],600,changes(300),operator_gpu=operator_choice),lambda x:self.health(x,learning=method!='no_learning',slo=True))
             if smoke['state']!='complete':continue
-            long=self.trial('M3_'+method,self.setting(method,robots,[0,1],10800,changes(5400)))
+            long=self.trial('M3_'+method,self.setting(method,robots,[0,1],10800,changes(5400),operator_gpu=operator_choice))
             if method=='ours':ours_ok=long['state']=='complete' and (long.get('slo') or 0)>=.99
             save(self.root/'milestones'/('M3_'+method+'.json'),dict(state=long['state'],raw=long.get('raw'),seconds=10800,slo=long.get('slo')))
             self.report()

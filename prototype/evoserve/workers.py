@@ -15,7 +15,13 @@ def serve(cfg):
     out=Path(cfg['out']);out.mkdir(exist_ok=True,parents=True)
     model=GraphModel(cfg['assets'])
     for eid in cfg['experts']:model.install(eid,f'{eid}:v0')
-    if cfg.get('operators'):model.enable_operators(cfg['operators'])
+    remote=bool(cfg.get('operator_results'))
+    if cfg.get('operators') and not remote:model.enable_operators(cfg['operators'])
+    operator_export=None;operator_ident=0
+    if remote:
+        from .operators import operator_token
+        source=out/'operator_export';source.mkdir(exist_ok=True)
+        operator_export=Export(source,(*model.prefix,model.static.state))
     exporter=Export(out,model.prefix) if cfg['export_cache'] else None
     requests=queue.Queue();running=True;ident=0
     def handle(msg):
@@ -29,7 +35,16 @@ def serve(cfg):
             msg,reply,done=requests.get()
             try:
                 if msg['op']=='infer':
-                    actions,row=model.infer(msg['raw'],msg['expert'],msg['version'],msg['seed'])
+                    operator_ref=None;early_record=None
+                    def early_prefix(prefix,state,ready):
+                        nonlocal operator_ident,operator_ref,early_record
+                        record=dict(id=operator_ident,expert=msg['expert'],seed=msg['seed'],request_id=msg['request_id'],episode=msg['episode'],frame=msg['frame'],version=msg['version'],deadline=msg.get('release',time.monotonic())+.25)
+                        early_record=operator_export.publish(operator_ident,(*prefix,state),record,ready_event=ready)
+                        save(source/'ipc'/f'{operator_ident:08d}.json',early_record)
+                        token=operator_token(str(source),operator_ident)
+                        operator_ref=dict(path=str(Path(cfg['operator_results'])/(token+'.json')),request_id=msg['request_id']);operator_ident+=1
+                    actions,row=model.infer(msg['raw'],msg['expert'],msg['version'],msg['seed'],prefix_hook=early_prefix if remote and msg.get('operator') else None)
+                    if early_record is not None:row.update({'operator_'+k:v for k,v in early_record.items() if k.startswith('export_')})
                     ref=None
                     if exporter:
                         rec=exporter.publish(ident,model.prefix,dict(episode=msg['episode'],frame=msg['frame'],version=msg['version'],expert=msg['expert'],id=ident))
@@ -37,11 +52,11 @@ def serve(cfg):
                         ref=dict(server=str(out),id=ident);ident+=1
                         row.update({k:v for k,v in rec.items() if k.startswith('export_')})
                     operator_actions=None
-                    if msg.get('operator'):
+                    if msg.get('operator') and not remote:
                         operator_actions,timing=model.infer_operator(msg['expert'],msg['seed']+7919);row.update(timing)
                     row.update(finish_ns=time.monotonic_ns(),request_id=msg['request_id'],expert=msg['expert'],version=msg['version'],operator_requested=bool(msg.get('operator')))
                     append(out/'requests.jsonl',row)
-                    reply['value']=dict(actions=actions,operator_actions=operator_actions,cache_ref=ref,timing=row)
+                    reply['value']=dict(actions=actions,operator_actions=operator_actions,operator_ref=operator_ref,cache_ref=ref,timing=row)
                 elif msg['op']=='install':
                     model.install(msg['expert'],msg['version'],msg.get('path'));reply['value']=True
                 elif msg['op']=='remove':
@@ -53,6 +68,7 @@ def serve(cfg):
     finally:
         rpc.close()
         if exporter:exporter.close()
+        if operator_export:operator_export.close()
 
 
 def train(cfg):

@@ -28,7 +28,7 @@ def gpu_status():
 
 class Run:
     def __init__(self,cfg,out):
-        self.cfg=cfg;self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False)
+        self.cfg=cfg;self.operator_gpu=cfg.get('operator_gpu');self.used_gpus=sorted(set(cfg['gpus']+([] if self.operator_gpu is None else [self.operator_gpu])));self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False)
         self.closed=False;self.children=[];self.mps=[];self.stop=threading.Event();self.origin=None;self.deadline=None
         self.ledger=DeadlineLedger();self.episodes=[];self.takeovers=[];self.sample_sources=defaultdict(int);self.event_cursor=0;self.error=None
         self.lock=threading.RLock();self.production_paths={};self.candidate_counter=defaultdict(int)
@@ -43,8 +43,8 @@ class Run:
         self.sockets=Path('/tmp')/('ep_'+hashlib.sha256(str(self.out).encode()).hexdigest()[:12]);self.sockets.mkdir(mode=0o700)
         save(self.out/'protocol.json',cfg)
         before=gpu_status();save(self.out/'hardware_before.json',before)
-        assert all(x['power_limit_w']==225 for x in before['cards'] if x['gpu'] in cfg['gpus'])
-        for gpu in cfg['gpus']:
+        assert all(x['power_limit_w']==225 for x in before['cards'] if x['gpu'] in self.used_gpus)
+        for gpu in self.used_gpus:
             active=subprocess.check_output(['nvidia-smi',f'--id={gpu}','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
             if active:raise RuntimeError(f'GPU{gpu} occupied: {active}; no process interrupted')
         self.monitor=threading.Thread(target=self.monitor_loop,daemon=True);self.monitor.start()
@@ -85,20 +85,28 @@ class Run:
             tg=cfg['gpus'][1] if split else sg
             gpu_experts[sg].append(e);self.expert_server[e]=sg;self.expert_trainer[e]=tg
             if self.learning or self.export:train_experts[tg].append(e)
-        environments={g:self.gpu_env(g,g in gpu_experts and g in train_experts) for g in set(gpu_experts)|set(train_experts)}
+        all_gpus=set(gpu_experts)|set(train_experts)|({self.operator_gpu} if self.operator_gpu is not None else set())
+        environments={g:self.gpu_env(g,(g in gpu_experts and g in train_experts) or (g==self.operator_gpu and (g in gpu_experts or g in train_experts))) for g in all_gpus}
+        if self.operator_gpu is not None:
+            self.operator_out=self.out/f'operator{self.operator_gpu}';self.operator_out.mkdir()
         for g,experts in gpu_experts.items():
             out=self.out/f'serve{g}';out.mkdir();self.service_out[g]=out;address=self.sockets/f's{g}'
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),experts=experts,export_cache=self.export,cpus=list(range(g*8,g*8+4)))
             c['operators']={str(e):cfg.get('operators',{})[str(e)] for e in experts if str(e) in cfg.get('operators',{})}
+            if self.operator_gpu is not None:c['operator_results']=str(self.operator_out/'results')
             self.spawn('evoserve.workers',c,f'serve{g}',environments[g]);self.service[g]=RPCClient(address)
         for g,experts in train_experts.items():
             out=self.out/f'train{g}';out.mkdir();address=self.sockets/f't{g}';plan=self.out/f'train_plan{g}.json';self.plans[g]=plan
             save(plan,dict(experts=[],m=1,duty=0))
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),plan=str(plan),experts=experts,service_outs=[str(self.service_out[self.expert_server[e]]) for e in experts],cpus=list(range(g*8+4,g*8+8)),mode=cfg['method'],seed=cfg['seed'],pool_samples=512,pool_bytes=12*1024**3)
             c['service_outs']=list(dict.fromkeys(c['service_outs']));self.spawn('evoserve.workers',c,f'train{g}',environments[g]);self.trainer[g]=RPCClient(address)
+        if self.operator_gpu is not None:
+            c=dict(assets=cfg['assets'],out=str(self.operator_out),gpu=self.operator_gpu,cpus=[28,29],operators=cfg['operators'],sources=[str(p/'operator_export') for p in self.service_out.values()])
+            self.spawn('evoserve.operator_worker',c,'operator'+str(self.operator_gpu),environments[self.operator_gpu])
         self.controllers={g:TwoKnobController(len(es)) for g,es in train_experts.items()}
         for g in gpu_experts:wait_file(self.out/f'serve{g}/ready.json',self.children)
         for g in train_experts:wait_file(self.out/f'train{g}/ready.json',self.children)
+        if self.operator_gpu is not None:wait_file(self.operator_out/'ready.json',self.children)
         self.rpc=RPCServer(self.sockets/'coord',self.handle)
         for robot,e in enumerate([] if cfg.get('replay_source') else cfg['robot_experts']):
             out=self.out/f'robot{robot}';out.mkdir()
@@ -248,7 +256,7 @@ class Run:
             # Nominal periods absent during reset/barriers remain deadline misses.
             robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles)+sum(x.get('reason')=='simulation_reset_or_episode_barrier' for x in rows),request_period_s=.25)
         simulation_overruns=sum(x['simulation_overrun_cycles'] for x in robot_stats.values())
-        summary=dict(state='complete',accepted_windows_by_source=dict(self.sample_sources),autonomous_successes=sum(x.get('autonomous_success',x['success']) for x in episodes),autonomous_successful_tasks_per_hour=sum(x.get('autonomous_success',x['success']) for x in episodes)*3600/self.cfg['seconds'],validation_success_definition='completed successfully without any operator takeover',operator_same_gpu_cost_included=bool(self.cfg.get('operators')),replay=bool(self.cfg.get('replay_source')),per_robot=robot_stats,simulation_overrun_cycles=simulation_overruns,method=self.cfg['method'],seconds=self.cfg['seconds'],robots=len(self.cfg['robot_experts']),episodes=len(episodes),successes=sum(x['success'] for x in episodes),successful_tasks_per_hour=sum(x['success'] for x in episodes)*3600/self.cfg['seconds'],expert_results=per_expert,promotions=sum(x['decision']=='promote' for x in validations),validations=validations,accepted_cache_windows=dict(self.pool_sample_counter),power_limits_w={x['gpu']:x['power_limit_w'] for x in gpu_status()['cards']},nominal_request_rate=stats['requests']/self.cfg['seconds'],actual_request_rate=(self.replay.dispatched if hasattr(self,'replay') else sum(x['sent_requests'] for x in robot_stats.values()))/self.cfg['seconds'],**stats)
+        summary=dict(state='complete',accepted_windows_by_source=dict(self.sample_sources),autonomous_successes=sum(x.get('autonomous_success',x['success']) for x in episodes),autonomous_successful_tasks_per_hour=sum(x.get('autonomous_success',x['success']) for x in episodes)*3600/self.cfg['seconds'],validation_success_definition='completed successfully without any operator takeover',operator_placement=dict(gpu=self.operator_gpu,serving_gpus=self.cfg['gpus'],shares_experiment_gpu=self.operator_gpu in self.cfg['gpus'] if self.operator_gpu is not None else True,production_does_not_wait_for_operator=self.operator_gpu is not None),replay=bool(self.cfg.get('replay_source')),per_robot=robot_stats,simulation_overrun_cycles=simulation_overruns,method=self.cfg['method'],seconds=self.cfg['seconds'],robots=len(self.cfg['robot_experts']),episodes=len(episodes),successes=sum(x['success'] for x in episodes),successful_tasks_per_hour=sum(x['success'] for x in episodes)*3600/self.cfg['seconds'],expert_results=per_expert,promotions=sum(x['decision']=='promote' for x in validations),validations=validations,accepted_cache_windows=dict(self.pool_sample_counter),power_limits_w={x['gpu']:x['power_limit_w'] for x in gpu_status()['cards']},nominal_request_rate=stats['requests']/self.cfg['seconds'],actual_request_rate=(self.replay.dispatched if hasattr(self,'replay') else sum(x['sent_requests'] for x in robot_stats.values()))/self.cfg['seconds'],**stats)
         curves=[]
         for e in self.cfg['expert_ids']:
             for begin in range(0,self.cfg['seconds'],300):
@@ -257,11 +265,18 @@ class Run:
         with (self.out/'expert_success_curves.csv').open('w') as f:
             w=csv.DictWriter(f,fieldnames=list(curves[0]));w.writeheader();w.writerows(curves)
         summary['hourly']=[dict(hour=i//3600+1,completed_tasks=sum(self.origin+i<=x['finished']<self.origin+min(i+3600,self.cfg['seconds']) for x in episodes),successful_tasks=sum(self.origin+i<=x['finished']<self.origin+min(i+3600,self.cfg['seconds']) and x['success'] for x in episodes)) for i in range(0,self.cfg['seconds'],3600)]
+        operator_rows=[]
+        if hasattr(self,'operator_out') and (self.operator_out/'requests.jsonl').exists():operator_rows=[json.loads(x) for x in (self.operator_out/'requests.jsonl').read_text().splitlines()]
+        serving_rows=[]
+        for source in self.service_out.values():
+            if (source/'requests.jsonl').exists():serving_rows.extend(json.loads(x) for x in (source/'requests.jsonl').read_text().splitlines())
         operator_hourly=[]
         for e in self.cfg['expert_ids']:
             for begin in range(0,self.cfg['seconds'],3600):
                 end=min(self.cfg['seconds'],begin+3600);count=sum(x['expert']==e and self.origin+begin<=x['time']<self.origin+end for x in self.takeovers)
-                operator_hourly.append(dict(expert=e,begin_s=begin,end_s=end,takeovers=count,takeovers_per_hour=count*3600/(end-begin)))
+                jobs=[x for x in operator_rows if x['expert']==e and self.origin+begin<=x['deadline']-.25<self.origin+end]
+                exports=[x for x in serving_rows if x['expert']==e and self.origin+begin<=x['finish_ns']/1e9<self.origin+end and x.get('operator_requested')]
+                operator_hourly.append(dict(operator_export_d2h_seconds=sum(x.get('operator_export_d2h_ms',0) for x in exports)/1000,operator_export_host_seconds=sum(x.get('operator_export_host_copy_ms',0) for x in exports)/1000,expert=e,begin_s=begin,end_s=end,takeovers=count,takeovers_per_hour=count*3600/(end-begin),operator_gpu=self.operator_gpu,operator_requests=len(jobs),operator_gpu_seconds=sum(x.get('operator_gpu_ms',0)+x.get('operator_h2d_ms',0) for x in jobs)/1000,operator_h2d_seconds=sum(x.get('operator_h2d_ms',0) for x in jobs)/1000,operator_late_or_dropped=sum(x['status']!='complete' or x['finished']>x['deadline'] for x in jobs)))
         with (self.out/'operator_hourly.csv').open('w') as f:
             w=csv.DictWriter(f,fieldnames=list(operator_hourly[0]));w.writeheader();w.writerows(operator_hourly)
         summary['operator_hourly']=operator_hourly
@@ -286,8 +301,7 @@ class Run:
         for env in self.mps:
             subprocess.run(['nvidia-cuda-mps-control'],env=env,input='quit\n',text=True,capture_output=True,timeout=20)
         for path in self.service_out.values():
-            layout=path/'ipc_layout.pkl'
-            if layout.exists():Path(pickle.loads(layout.read_bytes())[0]).unlink(missing_ok=True)
+            for layout in path.rglob('ipc_layout.pkl'):Path(pickle.loads(layout.read_bytes())[0]).unlink(missing_ok=True)
         if hasattr(self,'rpc'):self.rpc.close()
         self.monitor.join(timeout=5)
         save(self.out/'hardware_after.json',gpu_status())

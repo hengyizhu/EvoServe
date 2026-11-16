@@ -3,5 +3,7 @@
   "osmesa_lib": "/home/hengyi/.local/opt/osmesa-prototype/root/usr/lib/x86_64-linux-gnu",
   "seed": 20261108,
   "operator_manifest": "/home/hengyi/Workspace/01_VLA-Serving/Repositories/EvoServe-prototype/prototype/configs/operators.machine_a.json",
-  "stagnation_distance_m": 0.002
+  "stagnation_distance_m": 0.002,
+  "operator_gpu": 1,
+  "namespace": "remote_operator_v1"
 }

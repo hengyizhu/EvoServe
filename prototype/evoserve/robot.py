@@ -68,12 +68,19 @@ def run(cfg):
                     dispatched=time.monotonic()
                     append(out/'dispatches.jsonl',dict(request_id=rid,release=release,dispatched=dispatched,expert=cfg['expert'],robot=cfg['robot']))
                     cache_version=production_version if operator_requested else version
-                    reply=client.call('infer',raw=raw,expert=cfg['expert'],version=cache_version,operator=operator_requested,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
+                    reply=client.call('infer',raw=raw,expert=cfg['expert'],version=cache_version,operator=operator_requested,release=release,seed=seed*10000+cycle,episode=episode,frame=frame,request_id=rid)
                     finish=time.monotonic()
-                    selected=reply['operator_actions'] if operator_requested else reply['actions']
-                    if selected is None:raise RuntimeError('operator action missing')
-                    if finish<=release+PERIOD:actions.offer(cycle,finish,selected,'operator' if operator_requested else 'production')
+                    # Production SLO ends when production actions arrive, independently of the simulated human.
                     c.call('finish',request_id=rid,finish=finish)
+                    selected=reply['operator_actions'] if operator_requested else reply['actions'];action_finished=finish
+                    if operator_requested and reply.get('operator_ref'):
+                        from .operators import wait_operator_result
+                        operator_result=wait_operator_result(reply['operator_ref'],release+PERIOD)
+                        action_finished=time.monotonic()
+                        selected=operator_result.get('actions') if operator_result.get('status')=='complete' else None
+                        append(out/'operator_responses.jsonl',dict(request_id=rid,status=operator_result.get('status'),production_finish=finish,action_received=action_finished,deadline=release+PERIOD,ontime=selected is not None and action_finished<=release+PERIOD))
+                    elif operator_requested and selected is None:raise RuntimeError('operator action missing')
+                    if selected is not None and action_finished<=release+PERIOD:actions.offer(cycle,action_finished,selected,'operator' if operator_requested else 'production')
                     completed.put((cycle,release,finish,frame,raw,reply['cache_ref'],cache_version))
                     append(out/'requests.jsonl',dict(request_id=rid,expert=cfg['expert'],version=cache_version,episode_version=version,operator_requested=operator_requested,release=release,finish=finish,latency_ms=(finish-release)*1000,observation_frame=frame,observation_age_ms=(dispatched-captured)*1000,observation_after_nominal_ms=(captured-release)*1000,sent=True))
                 except Exception:completed.put(('error',traceback.format_exc()))
