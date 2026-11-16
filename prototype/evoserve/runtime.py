@@ -35,7 +35,7 @@ class Run:
         self.service={};self.trainer={};self.service_out={};self.plans={};self.expert_server={};self.expert_trainer={}
         self.pool_sample_counter=defaultdict(int);self.seen_change=set();self.corpus={};self.corpus_count=defaultdict(int)
         self.learning=cfg['method']!='no_learning' and not cfg.get('capacity_only',False)
-        self.export=cfg['method'] not in ['recompute','no_learning']
+        self.export=cfg.get('export_cache',cfg['method'] not in ['recompute','no_learning'])
         prior=read(cfg['prior']);self.prior=LearningPrior(prior['points'],prior['default_amplitude'])
         robots=defaultdict(list)
         for i,e in enumerate(cfg['robot_experts']):robots[e].append(i)
@@ -59,7 +59,7 @@ class Run:
         file=self.out/(label+'_config.json');save(file,cfg)
         with (self.out/(label+'.log')).open('w') as f:
             cmd=[sys.executable,'-u','-m',module,'--config',str(file)]
-            if module.endswith('workers'):cmd+=['--kind','serve' if label.startswith('serve') else 'train']
+            if module.endswith('workers'):cmd+=['--kind',cfg.get('worker_kind','serve' if label.startswith('serve') else 'train')]
             p=subprocess.Popen(cmd,env=env,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
         self.children.append(p);save(self.out/'worker_pids.json',[p.pid for p in self.children]);return p
 
@@ -92,6 +92,7 @@ class Run:
         for g,experts in gpu_experts.items():
             out=self.out/f'serve{g}';out.mkdir();self.service_out[g]=out;address=self.sockets/f's{g}'
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),experts=experts,export_cache=self.export,cpus=list(range(g*8,g*8+4)))
+            c.update(batch_sizes=cfg.get('batch_sizes',[1]),batch_wait_ms=cfg.get('batch_wait_ms',0))
             c['operators']={str(e):cfg.get('operators',{})[str(e)] for e in experts if str(e) in cfg.get('operators',{})}
             if self.operator_gpu is not None:c['operator_results']=str(self.operator_out/'results')
             self.spawn('evoserve.workers',c,f'serve{g}',environments[g]);self.service[g]=RPCClient(address)
@@ -99,7 +100,9 @@ class Run:
             out=self.out/f'train{g}';out.mkdir();address=self.sockets/f't{g}';plan=self.out/f'train_plan{g}.json';self.plans[g]=plan
             save(plan,dict(experts=[],m=1,duty=0))
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),plan=str(plan),experts=experts,service_outs=[str(self.service_out[self.expert_server[e]]) for e in experts],cpus=list(range(g*8+4,g*8+8)),mode=cfg['method'],seed=cfg['seed'],pool_samples=512,pool_bytes=12*1024**3)
-            c['service_outs']=list(dict.fromkeys(c['service_outs']));self.spawn('evoserve.workers',c,f'train{g}',environments[g]);self.trainer[g]=RPCClient(address)
+            c['service_outs']=list(dict.fromkeys(c['service_outs']))
+            if not self.learning:c['worker_kind']='sink'
+            self.spawn('evoserve.workers',c,f'train{g}',environments[g]);self.trainer[g]=RPCClient(address)
         if self.operator_gpu is not None:
             c=dict(assets=cfg['assets'],out=str(self.operator_out),gpu=self.operator_gpu,cpus=[28,29],operators=cfg['operators'],sources=[str(p/'operator_export') for p in self.service_out.values()])
             self.spawn('evoserve.operator_worker',c,'operator'+str(self.operator_gpu),environments[self.operator_gpu])
@@ -254,7 +257,11 @@ class Run:
             dispatches=[json.loads(x) for x in (path/'dispatches.jsonl').read_text().splitlines()] if (path/'dispatches.jsonl').exists() else []
             sent=sum(self.origin<=x['release']<self.deadline and x['dispatched']<self.deadline for x in dispatches)
             # Nominal periods absent during reset/barriers remain deadline misses.
-            robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles)+sum(x.get('reason')=='simulation_reset_or_episode_barrier' for x in rows),request_period_s=.25)
+            robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles),request_period_s=.25)
+            reset_path=self.out/f'robot{i}/resets.jsonl'
+            resets=[json.loads(x) for x in reset_path.read_text().splitlines()] if reset_path.exists() else []
+            reset_seconds=sum(max(0,min(x['ready'],self.deadline)-max(x['reset_started'],self.origin)) for x in resets)
+            robot_stats[str(i)].update(reset_seconds=reset_seconds,resets=len(resets),reset_excluded_from_slo=True,active_request_rate=sent/max(.001,self.cfg['seconds']-reset_seconds))
         simulation_overruns=sum(x['simulation_overrun_cycles'] for x in robot_stats.values())
         summary=dict(state='complete',accepted_windows_by_source=dict(self.sample_sources),autonomous_successes=sum(x.get('autonomous_success',x['success']) for x in episodes),autonomous_successful_tasks_per_hour=sum(x.get('autonomous_success',x['success']) for x in episodes)*3600/self.cfg['seconds'],validation_success_definition='completed successfully without any operator takeover',operator_placement=dict(gpu=self.operator_gpu,serving_gpus=self.cfg['gpus'],shares_experiment_gpu=self.operator_gpu in self.cfg['gpus'] if self.operator_gpu is not None else True,production_does_not_wait_for_operator=self.operator_gpu is not None),replay=bool(self.cfg.get('replay_source')),per_robot=robot_stats,simulation_overrun_cycles=simulation_overruns,method=self.cfg['method'],seconds=self.cfg['seconds'],robots=len(self.cfg['robot_experts']),episodes=len(episodes),successes=sum(x['success'] for x in episodes),successful_tasks_per_hour=sum(x['success'] for x in episodes)*3600/self.cfg['seconds'],expert_results=per_expert,promotions=sum(x['decision']=='promote' for x in validations),validations=validations,accepted_cache_windows=dict(self.pool_sample_counter),power_limits_w={x['gpu']:x['power_limit_w'] for x in gpu_status()['cards']},nominal_request_rate=stats['requests']/self.cfg['seconds'],actual_request_rate=(self.replay.dispatched if hasattr(self,'replay') else sum(x['sent_requests'] for x in robot_stats.values()))/self.cfg['seconds'],**stats)
         curves=[]

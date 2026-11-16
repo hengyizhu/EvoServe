@@ -12,59 +12,75 @@ from .io import RPCServer,save,read,append
 def serve(cfg):
     from .backend import GraphModel
     from .feature_ipc import Export
+    from .batching import collect_batch
     out=Path(cfg['out']);out.mkdir(exist_ok=True,parents=True)
-    model=GraphModel(cfg['assets'])
+    sizes=cfg.get('batch_sizes',[1]);maximum=max(sizes);wait_ms=cfg.get('batch_wait_ms',0)
+    if maximum>1:
+        from .batch_backend import BatchedGraphModel
+        model=BatchedGraphModel(cfg['assets'],sizes)
+    else:model=GraphModel(cfg['assets'])
     for eid in cfg['experts']:model.install(eid,f'{eid}:v0')
     remote=bool(cfg.get('operator_results'))
-    if cfg.get('operators') and not remote:model.enable_operators(cfg['operators'])
+    if cfg.get('operators') and not remote:
+        assert maximum==1,'Batched simulated operators must use auxiliary worker'
+        model.enable_operators(cfg['operators'])
     operator_export=None;operator_ident=0
     if remote:
         from .operators import operator_token
         source=out/'operator_export';source.mkdir(exist_ok=True)
         operator_export=Export(source,(*model.prefix,model.static.state))
     exporter=Export(out,model.prefix) if cfg['export_cache'] else None
-    requests=queue.Queue();running=True;ident=0
+    requests=queue.Queue();running=True;ident=0;deferred=None
     def handle(msg):
-        reply={};done=threading.Event();requests.put((msg,reply,done));done.wait()
+        msg['_enqueued_ns']=time.monotonic_ns();reply={};done=threading.Event();requests.put((msg,reply,done));done.wait()
         if 'error' in reply:raise RuntimeError(reply['error'])
         return reply['value']
     rpc=RPCServer(cfg['socket'],handle)
-    save(out/'ready.json',dict(pid=os.getpid(),graph_verified=True,trainable_parameters=20876320,denoising_steps=10,returned_horizon=10,normal_action_chunk=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
+    save(out/'ready.json',dict(pid=os.getpid(),graph_verified=True,trainable_parameters=20876320,denoising_steps=10,returned_horizon=10,normal_action_chunk=5,batch_sizes=sizes,batch_wait_ms=wait_ms,mixed_expert_batches=maximum>1,cpu_affinity=sorted(os.sched_getaffinity(0))))
     try:
         while running:
-            msg,reply,done=requests.get()
+            first=deferred if deferred is not None else requests.get();deferred=None;items=[first]
             try:
-                if msg['op']=='infer':
-                    operator_ref=None;early_record=None
+                if first[0]['op']=='infer':
+                    items,deferred=collect_batch(first,requests,maximum,wait_ms)
+                    messages=[x[0] for x in items];refs={};early_records={};batch_started=time.monotonic_ns()
                     def early_prefix(prefix,state,ready):
-                        nonlocal operator_ident,operator_ref,early_record
-                        record=dict(id=operator_ident,expert=msg['expert'],seed=msg['seed'],request_id=msg['request_id'],episode=msg['episode'],frame=msg['frame'],version=msg['version'],deadline=msg.get('release',time.monotonic())+.25)
-                        early_record=operator_export.publish(operator_ident,(*prefix,state),record,ready_event=ready)
-                        save(source/'ipc'/f'{operator_ident:08d}.json',early_record)
-                        token=operator_token(str(source),operator_ident)
-                        operator_ref=dict(path=str(Path(cfg['operator_results'])/(token+'.json')),request_id=msg['request_id']);operator_ident+=1
-                    actions,row=model.infer(msg['raw'],msg['expert'],msg['version'],msg['seed'],prefix_hook=early_prefix if remote and msg.get('operator') else None)
-                    if early_record is not None:row.update({'operator_'+k:v for k,v in early_record.items() if k.startswith('export_')})
-                    ref=None
-                    if exporter:
-                        rec=exporter.publish(ident,model.prefix,dict(episode=msg['episode'],frame=msg['frame'],version=msg['version'],expert=msg['expert'],id=ident))
-                        save(out/'ipc'/f'{ident:08d}.json',rec)
-                        ref=dict(server=str(out),id=ident);ident+=1
-                        row.update({k:v for k,v in rec.items() if k.startswith('export_')})
-                    operator_actions=None
-                    if msg.get('operator') and not remote:
-                        operator_actions,timing=model.infer_operator(msg['expert'],msg['seed']+7919);row.update(timing)
-                    row.update(finish_ns=time.monotonic_ns(),request_id=msg['request_id'],expert=msg['expert'],version=msg['version'],operator_requested=bool(msg.get('operator')))
-                    append(out/'requests.jsonl',row)
-                    reply['value']=dict(actions=actions,operator_actions=operator_actions,operator_ref=operator_ref,cache_ref=ref,timing=row)
-                elif msg['op']=='install':
-                    model.install(msg['expert'],msg['version'],msg.get('path'));reply['value']=True
-                elif msg['op']=='remove':
-                    model.remove(msg['expert'],msg['version']);reply['value']=True
-                elif msg['op']=='stop':running=False;reply['value']=True
-                else:raise ValueError(msg['op'])
-            except Exception:reply['error']=traceback.format_exc()
-            finally:done.set()
+                        nonlocal operator_ident
+                        for i,msg in enumerate(messages):
+                            if not msg.get('operator'):continue
+                            record=dict(id=operator_ident,expert=msg['expert'],seed=msg['seed'],request_id=msg['request_id'],episode=msg['episode'],frame=msg['frame'],version=msg['version'],deadline=msg.get('release',time.monotonic())+.25)
+                            packet=(*model.map(lambda q:q[i:i+1],prefix),state[i:i+1])
+                            rec=operator_export.publish(operator_ident,packet,record,ready_event=ready);save(source/'ipc'/f'{operator_ident:08d}.json',rec)
+                            refs[i]=dict(path=str(Path(cfg['operator_results'])/(operator_token(str(source),operator_ident)+'.json')),request_id=msg['request_id']);early_records[i]=rec;operator_ident+=1
+                    hook=early_prefix if remote and any(m.get('operator') for m in messages) else None
+                    if maximum>1:actions,prefix,row=model.infer_batch(messages,prefix_hook=hook)
+                    else:
+                        m=messages[0];action,row=model.infer(m['raw'],m['expert'],m['version'],m['seed'],prefix_hook=hook);actions=action[None];prefix=model.prefix;row.update(batch_size=1,graph_batch_size=1)
+                    append(out/'batches.jsonl',dict(**row,batch_id=batch_started,request_ids=[m['request_id'] for m in messages]))
+                    for i,(msg,reply,done) in enumerate(items):
+                        per=dict(row,batch_id=batch_started,queue_wait_ms=(batch_started-msg['_enqueued_ns'])/1e6)
+                        if i in early_records:per.update({'operator_'+k:v for k,v in early_records[i].items() if k.startswith('export_')})
+                        ref=None
+                        if exporter:
+                            rec=exporter.publish(ident,model.map(lambda q:q[i:i+1],prefix),dict(episode=msg['episode'],frame=msg['frame'],version=msg['version'],expert=msg['expert'],id=ident))
+                            save(out/'ipc'/f'{ident:08d}.json',rec);ref=dict(server=str(out),id=ident);ident+=1
+                            per.update({k:v for k,v in rec.items() if k.startswith('export_')})
+                        operator_actions=None
+                        if msg.get('operator') and not remote:operator_actions,timing=model.infer_operator(msg['expert'],msg['seed']+7919);per.update(timing)
+                        per.update(finish_ns=time.monotonic_ns(),request_id=msg['request_id'],expert=msg['expert'],version=msg['version'],operator_requested=bool(msg.get('operator')))
+                        append(out/'requests.jsonl',per);reply['value']=dict(actions=actions[i],operator_actions=operator_actions,operator_ref=refs.get(i),cache_ref=ref,timing=per);done.set()
+                else:
+                    msg,reply,done=first
+                    if msg['op']=='install':model.install(msg['expert'],msg['version'],msg.get('path'));reply['value']=True
+                    elif msg['op']=='remove':model.remove(msg['expert'],msg['version']);reply['value']=True
+                    elif msg['op']=='stop':running=False;reply['value']=True
+                    else:raise ValueError(msg['op'])
+            except Exception:
+                error=traceback.format_exc()
+                for _,reply,done in items:
+                    if not done.is_set():reply['error']=error
+            finally:
+                for _,_,done in items:done.set()
     finally:
         rpc.close()
         if exporter:exporter.close()
@@ -180,11 +196,28 @@ def train(cfg):
     finally:stop.set();receiver.join(timeout=5);rpc.close()
 
 
+def sink(cfg):
+    from .feature_ipc import read_slot
+    out=Path(cfg['out']);out.mkdir(exist_ok=True,parents=True);state=dict(received=0,error=None,expert_steps={str(e):0 for e in cfg['experts']})
+    rpc=RPCServer(cfg['socket'],lambda msg:dict(state) if msg['op']=='status' else dict(accepted=False))
+    save(out/'ready.json',dict(pid=os.getpid(),cache_sink_only=True,no_training_model=True))
+    indices={source:0 for source in cfg['service_outs']}
+    try:
+        while True:
+            moved=False
+            for source,i in list(indices.items()):
+                path=Path(source);meta=path/'ipc'/f'{i:08d}.json'
+                if not meta.exists():continue
+                rec=read(meta);packet=read_slot(path,rec['slot']);del packet;meta.unlink();indices[source]+=1;state['received']+=1;moved=True
+            if not moved:time.sleep(.001)
+    finally:rpc.close()
+
+
 def main():
     import argparse
-    p=argparse.ArgumentParser();p.add_argument('--kind',choices=['serve','train'],required=True);p.add_argument('--config',required=True);a=p.parse_args();cfg=read(a.config)
+    p=argparse.ArgumentParser();p.add_argument('--kind',choices=['serve','train','sink'],required=True);p.add_argument('--config',required=True);a=p.parse_args();cfg=read(a.config)
     os.sched_setaffinity(0,set(cfg['cpus']))
-    try:(serve if a.kind=='serve' else train)(cfg)
+    try:{'serve':serve,'train':train,'sink':sink}[a.kind](cfg)
     except Exception:
         save(Path(cfg['out'])/'failure.json',dict(error=traceback.format_exc()));raise
 

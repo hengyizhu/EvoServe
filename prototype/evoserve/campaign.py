@@ -174,7 +174,12 @@ class Campaign:
 def main():
     p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--config',required=True);a=p.parse_args();root=Path(a.root)
     with (root/'prototype_campaign.lock').open('w') as f:
-        fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB);campaign=Campaign(root,read(a.config))
+        fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        cfg=read(a.config)
+        if cfg.get('revision')=='reset_batch':
+            from .revision_campaign import RevisionCampaign
+            campaign=RevisionCampaign(root,cfg)
+        else:campaign=Campaign(root,cfg)
         try:campaign.run()
         except Exception:
             campaign.record('campaign','failed',reason=traceback.format_exc());raise

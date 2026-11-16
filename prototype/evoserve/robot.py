@@ -52,12 +52,11 @@ def run(cfg):
                 time.sleep(.002)
             version=assignment['version'];production_version=assignment.get('production_version',version);origin=assignment['origin'];end=assignment['end']
             if next_release is None:next_release=origin+cfg['phase_s']
-            # Reset/validation barriers never silently stretch the arrival clock.
-            while next_release+PERIOD<=time.monotonic():
-                rid=request_key(cfg['robot'],next_release)
-                coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=None)
-                append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulation_reset_or_episode_barrier',sent=False))
-                requests_total+=1;sim_misses+=1;next_release+=PERIOD
+            # An episode owns its own fixed-rate clock. Reset, settling and
+            # validation barriers are outside the request/SLO population.
+            reset_ready=time.monotonic()
+            next_release=max(reset_ready+.02,origin+cfg['phase_s'] if index==0 else 0.)
+            append(out/'resets.jsonl',dict(episode=episode,reset_started=reset_start,ready=reset_ready,first_request=next_release,reset_seconds=reset_ready-reset_start,excluded_from_slo=True))
             assembler=ActionWindowAssembler(episode,version);actions=PeriodicActions();completed=queue.Queue();futures=[];seen_frames=set();reservoir=[];rng=random.Random(seed+211);eligible=0;success=False;stopped=False;cycle=0;episode_time=next_release;tick=0;physics_cpu=0.;episode_misses=0;episode_holds=0
             operator_active=False;takeover_event=None;action_sources=[]
             detector=TakeoverRule(cfg.get('stagnation_distance_m',.002))

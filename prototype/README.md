@@ -19,7 +19,9 @@ presence of this code does not mean that M1/M2/M3 passed.
   five actions in the next period. Decode all ten model actions: on timeout use
   the old block's remainder, then hold pose (zero displacement, prior gripper
   command). Late responses are discarded. Nominal requests without responses,
-  including missed reset/transition periods, count as deadline failures.
+  during active execution count as deadline failures. Reset and initial settling
+  actions issue no requests and are excluded from SLO; each episode starts its
+  own 250 ms cadence at its first formal request. Reset time is reported separately.
 - CPU camera rendering uses a separate simulator state. Record observation age,
   capture frame, dispatch lag, actual request rate, and simulator overrun cycles.
   Each prefix is paired with **the ten actions actually executed after its capture
@@ -226,3 +228,42 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=prototype python prototype/tools/remote_operat
   --assets /path/to/assets --operators prototype/configs/operators.machine_a.json \
   --out /path/to/remote-preflight
 ```
+
+## Reset timing and dynamic batching revision
+
+`revision: reset_batch` selects the repair queue; M2/M3 remain suspended until
+reset tests, graph validation, capacity measurements and concurrent measurements
+pass. `resets.jsonl` reports reset/settling boundaries separately; request deadlines
+remain 250 ms once active execution begins. No threshold is relaxed.
+
+`batch_backend.py` shares one frozen VLM and captures batches 1/2/4/8. A batch has
+one VLM forward and ten denoising iterations. Expert/version-specific LoRA and
+head parameters are vectorized per sample; model-install commands are barriers.
+`batching.py` collects requests for at most 10 ms or until the selected cap is
+full. Partial batches use the next captured size, with padding explicitly logged.
+Only real requests produce replies and caches. Each request's KV slice keeps its
+own identifier and version; operator prefixes are exported at the prefix event.
+
+GPU calibration warms ten iterations and measures fifty per size. It separately
+checks captured versus eager vectorized execution, mixed model versions, and
+bit-exact per-request cache transport. Numerical differences from ordinary batched
+execution are recorded without changing results. Pure-inference capacity includes
+cache export and a pinned host-memory consumer, with no training model/update.
+
+The capacity sweep measures staggered and synchronized 4 Hz clients. M2 uses the
+largest ten-minute-verified staggered count, registering all four experts; experts
+without robots can only train if they already have cached data, and cannot trigger
+validation without real episodes. No artificial demonstrations are injected into
+M1/M2/M3. Capacity is reported within the tested range, including failing boundary
+points. The 70%/85% throughput tests use aggregate rates `4*Nmax*.70/.85` and are
+labeled equivalent-robot loads, not fractional physical robots. They train one
+expert using labeled demonstration windows through the actual serving cache path;
+these throughput runs make no learning-quality claims.
+
+Entry points: `tools/prepare_batch_inputs.py` (small aligned demonstration corpus),
+`tools/batch_calibrate.py` (GPU graph/copy validation and batch latency),
+`tools/batch_load.py` (open-loop serving/cache/feedback measurement), and
+`tools/batch_stage.py` (resumable capacity, concurrent tests and gated M1→M2→M3).
+All raw images, caches and logs remain outside Git. GPU0/1 power stays 225 W;
+GPU2/3 workloads and host load continue to be monitored. Each failed item retries
+once; independent measurements continue. No failed prerequisite starts a long run.

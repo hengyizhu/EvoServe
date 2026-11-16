@@ -104,7 +104,7 @@ class Window:
     data_source: str = 'self_success'
 
     def check(self):
-        if self.data_source not in ['self_success','operator_correction']:raise ValueError('unknown data source')
+        if self.data_source not in ['self_success','operator_correction','demonstration']:raise ValueError('unknown data source')
         if self.action_frames != tuple(range(self.key.frame, self.key.frame+10)):
             raise ValueError('cache/action window misalignment or incomplete window')
 
@@ -282,7 +282,7 @@ class Scheduler:
 
     def should_validate(self, expert):
         e = self.experts[expert]
-        if e.trial or e.pending_decision or e.step == e.production_step:
+        if not e.robots or e.trial or e.pending_decision or e.step == e.production_step:
             return False
         pred = self.prediction(e)
         return (pred['success']-pred['production_success'] >= validation_margin(self.n)
