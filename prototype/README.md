@@ -21,7 +21,7 @@ presence of this code does not mean that M1/M2/M3 passed.
   command). Late responses are discarded. Nominal requests without responses,
   during active execution count as deadline failures. Reset and initial settling
   actions issue no requests and are excluded from SLO; each episode starts its
-  own 250 ms cadence at its first formal request. Reset time is reported separately.
+  own 250 ms cadence at its first formal request. Reset time and admission wait are reported separately.
 - CPU camera rendering uses a separate simulator state. Record observation age,
   capture frame, dispatch lag, actual request rate, and simulator overrun cycles.
   Each prefix is paired with **the ten actions actually executed after its capture
@@ -267,3 +267,12 @@ Entry points: `tools/prepare_batch_inputs.py` (small aligned demonstration corpu
 All raw images, caches and logs remain outside Git. GPU0/1 power stays 225 W;
 GPU2/3 workloads and host load continue to be monitored. Each failed item retries
 once; independent measurements continue. No failed prerequisite starts a long run.
+
+Camera age is logged independently from fixed-period emission/physics lateness.
+A frame older than 250 ms is a stale-observation event; it does not by itself mean
+that a request was emitted late. The request uses the latest available frame as
+specified, and its actual response deadline still determines SLO. Both counters
+remain in the raw records. The initial one-minute M1 checks that conflated these
+counters are preserved; `repair_reset_gate.py` inserts a separate ten-minute
+retest at an idle boundary before capacity measurement, without interrupting an
+already-running GPU test.

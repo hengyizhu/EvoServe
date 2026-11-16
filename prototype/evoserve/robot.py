@@ -3,7 +3,7 @@ from pathlib import Path
 import os,random,sys,time,traceback,queue,threading
 from concurrent.futures import ThreadPoolExecutor
 from .io import RPCClient,save,append,read
-from .core import ActionWindowAssembler,PeriodicActions,TakeoverRule,window_data_source,request_key
+from .core import ActionWindowAssembler,PeriodicActions,TakeoverRule,window_data_source,request_key,cycle_timing_flags
 from .simulation import AsyncRenderer
 
 PERIOD=.250
@@ -41,6 +41,7 @@ def run(cfg):
                 while renderer.get(episode)['captured']<fresh:time.sleep(.002)
             if index==0:
                 save(out/'ready.json',dict(pid=os.getpid(),renderer='independent OSMesa state',request_period_s=PERIOD,physics_hz=20,returned_actions=10,normal_actions_per_cycle=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
+            reset_completed=time.monotonic()
             primed_origin=None
             while True:
                 assignment=coord.call('begin_episode',expert=cfg['expert'],robot=cfg['robot'],episode=episode)
@@ -56,7 +57,7 @@ def run(cfg):
             # validation barriers are outside the request/SLO population.
             reset_ready=time.monotonic()
             next_release=max(reset_ready+.02,origin+cfg['phase_s'] if index==0 else 0.)
-            append(out/'resets.jsonl',dict(episode=episode,reset_started=reset_start,ready=reset_ready,first_request=next_release,reset_seconds=reset_ready-reset_start,excluded_from_slo=True))
+            append(out/'resets.jsonl',dict(episode=episode,reset_started=reset_start,ready=reset_ready,first_request=next_release,reset_completed=reset_completed,reset_seconds=reset_completed-reset_start,admission_wait_seconds=reset_ready-reset_completed,excluded_until=next_release,excluded_from_slo=True))
             assembler=ActionWindowAssembler(episode,version);actions=PeriodicActions();completed=queue.Queue();futures=[];seen_frames=set();reservoir=[];rng=random.Random(seed+211);eligible=0;success=False;stopped=False;cycle=0;episode_time=next_release;tick=0;physics_cpu=0.;episode_misses=0;episode_holds=0
             operator_active=False;takeover_event=None;action_sources=[]
             detector=TakeoverRule(cfg.get('stagnation_distance_m',.002))
@@ -117,14 +118,15 @@ def run(cfg):
                     rid=request_key(cfg['robot'],next_release);view=renderer.get(episode)
                     raw=raw_observation(view,state.get('perturb')) if view else None
                     lag=time.monotonic()-next_release
-                    behind=lag>=PERIOD or view is None or time.monotonic()-view['captured']>=PERIOD
+                    timing=cycle_timing_flags(lag,None if view is None else time.monotonic()-view['captured'])
+                    behind=timing['simulation_overrun'];observation_stale=timing['observation_stale']
                     episode_misses+=int(behind);sim_misses+=int(behind)
                     coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=raw,seed=seed*10000+cycle,operator=operator_active)
                     requests_total+=1;futures=[f for f in futures if not f.done()]
                     if raw is not None and len(futures)<8:
                         futures.append(pool.submit(infer,cycle,next_release,rid,raw,view['frame'],view['captured'],operator_active));requests_sent+=1
                     else:append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulator_unready' if raw is None else 'request_backlog_limit',sent=False))
-                    append(out/'cycles.jsonl',dict(cycle=cycle,nominal_release=next_release,dispatch_lag_ms=lag*1000,simulation_overrun=behind,observation_age_ms=None if view is None else (time.monotonic()-view['captured'])*1000))
+                    append(out/'cycles.jsonl',dict(cycle=cycle,nominal_release=next_release,dispatch_lag_ms=lag*1000,simulation_overrun=behind,observation_stale=observation_stale,observation_age_ms=None if view is None else (time.monotonic()-view['captured'])*1000))
                     next_release+=PERIOD;cycle+=1
                 action,hold=actions.next();action=np.asarray(action,dtype=np.float32);holds+=int(hold);episode_holds+=int(hold)
                 t=time.thread_time();env.step(action.tolist());physics_cpu+=time.thread_time()-t;assembler.actions.append(action.copy());action_sources.append(actions.last_source);accept_ready()

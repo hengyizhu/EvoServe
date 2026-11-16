@@ -12,6 +12,11 @@ DEADLINE_S = .250
 SLO = .99
 
 
+def cycle_timing_flags(dispatch_lag_s, observation_age_s):
+    return dict(simulation_overrun=dispatch_lag_s >= DEADLINE_S or observation_age_s is None,
+                observation_stale=observation_age_s is not None and observation_age_s >= DEADLINE_S)
+
+
 def validation_margin(episodes=50):
     return max(.05, 1.5 * math.sqrt(.25 / episodes))
 

@@ -84,11 +84,13 @@ class Stage(Campaign):
    return
   self.resume(maximum)
  def resume(self,capacity):
+  save(self.root/'milestone_hold.json',dict(M2='waiting_M1_hour',M3='waiting_M2',reset_and_batching_passed=True,time=time.time()))
   extra=dict(batch_sizes=self.sizes,batch_wait_ms=10)
   lowlight=[dict(expert=3,at_s=0,perturb=dict(kind='exposure',factor=.05))]
   short=self.trial('M1_batch_smoke',self.setting(changes=lowlight,**extra),lambda x:self.health(x,learning=True,slo=True))
   if short['state']!='complete':self.record('M1_long','blocked',reason='M1 batched smoke failed');return
   long=self.trial('M1_long',self.setting(seconds=3600,changes=lowlight,**extra),lambda x:self.health(x,learning=True,slo=True))
+  save(self.root/'milestones/M1.json',dict(state='passed' if long['state']=='complete' and long.get('promotions') else 'not_demonstrated',raw=long.get('raw'),promotions=long.get('promotions',0),revision=self.namespace))
   if long['state']!='complete' or not long.get('promotions'):
    for name in ['M2','M3']:self.record(name,'blocked',reason='M1 did not demonstrate validated improvement');return
   n=min(capacity,4);active=[3,5,9,1][:n]

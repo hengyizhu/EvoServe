@@ -1,5 +1,5 @@
 """Open-loop fixed-rate load, actual serving-cache training, unrestricted MPS feedback."""
-import argparse,sys,os,time,json,pickle,threading,queue,math,csv,traceback
+import argparse,sys,os,time,json,pickle,threading,queue,math,csv,traceback,subprocess
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
@@ -9,6 +9,11 @@ from evoserve.core import DeadlineLedger,TwoKnobController
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);a=p.parse_args();cfg=read(a.config);os.sched_setaffinity(0,{30,31});out=Path(a.out)
+ root=Path(cfg['inputs']).parent
+ if read(root/'pending_reset_gate.json',{}).get('state')=='pending':
+  subprocess.run([sys.executable,str(Path(__file__).with_name('repair_reset_gate.py')),'--root',str(root)],check=True)
+  save(root/'status.json',dict(state='prototype_running',item=out.parent.name,time=time.time()))
+  save(root/'prototype_active.json',dict(pid=os.getpid(),cmd=[sys.executable,*sys.argv],out=str(out.parent),time=time.time()))
  run=Run(cfg,out);samples=pickle.loads(Path(cfg['inputs']).read_bytes());learn=cfg['method']=='ours';stop=threading.Event();incoming=queue.Queue();errors=[];clients=threading.local();thread_clients=[];lock=threading.Lock();dispatched=0;dispatch_counts={}
  try:
   run.start();server=run.service[0];trainer=run.trainer[0]
