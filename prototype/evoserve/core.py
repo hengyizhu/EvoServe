@@ -410,3 +410,8 @@ def window_data_source(action_sources, intervened):
     if all(x=='operator' for x in action_sources):return 'operator_correction'
     if not intervened and all(x=='production' for x in action_sources):return 'self_success'
     return None
+
+
+def request_key(robot, release):
+    """Absolute release IDs avoid banker-rounding collisions at half-period phases."""
+    return f'r{robot}:release_ns:{round(release*1_000_000_000)}'

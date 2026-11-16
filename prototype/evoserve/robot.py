@@ -3,7 +3,7 @@ from pathlib import Path
 import os,random,sys,time,traceback,queue,threading
 from concurrent.futures import ThreadPoolExecutor
 from .io import RPCClient,save,append,read
-from .core import ActionWindowAssembler,PeriodicActions,TakeoverRule,window_data_source
+from .core import ActionWindowAssembler,PeriodicActions,TakeoverRule,window_data_source,request_key
 from .simulation import AsyncRenderer
 
 PERIOD=.250
@@ -54,7 +54,7 @@ def run(cfg):
             if next_release is None:next_release=origin+cfg['phase_s']
             # Reset/validation barriers never silently stretch the arrival clock.
             while next_release+PERIOD<=time.monotonic():
-                rid=f"r{cfg['robot']}:period:{round((next_release-origin)/PERIOD)}"
+                rid=request_key(cfg['robot'],next_release)
                 coord.call('arrive',request_id=rid,release=next_release,expert=cfg['expert'],robot=cfg['robot'],raw=None)
                 append(out/'requests.jsonl',dict(request_id=rid,release=next_release,finish=None,reason='simulation_reset_or_episode_barrier',sent=False))
                 requests_total+=1;sim_misses+=1;next_release+=PERIOD
@@ -108,7 +108,7 @@ def run(cfg):
                     if cycle:actions.boundary(cycle-1,next_release,allowed_source='operator' if operator_active else 'production')
                     state=coord.call('environment',expert=cfg['expert'])
                     if state['stop']:stopped=True;break
-                    rid=f"r{cfg['robot']}:period:{round((next_release-origin)/PERIOD)}";view=renderer.get(episode)
+                    rid=request_key(cfg['robot'],next_release);view=renderer.get(episode)
                     raw=raw_observation(view,state.get('perturb')) if view else None
                     lag=time.monotonic()-next_release
                     behind=lag>=PERIOD or view is None or time.monotonic()-view['captured']>=PERIOD

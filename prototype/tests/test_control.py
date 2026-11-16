@@ -112,3 +112,14 @@ class PeriodicTests(unittest.TestCase):
         self.assertEqual(key.frame,1);self.assertEqual(labels,list(range(1,11)))
 
 if __name__=='__main__':unittest.main()
+
+
+class RequestIdentityTests(unittest.TestCase):
+    def test_staggered_arrivals_remain_unique(self):
+        for robots in range(1,7):
+            keys=[]
+            for robot in range(robots):
+                release=123456.125+.25*robot/robots
+                for _ in range(2400):
+                    keys.append(request_key(robot,release));release+=.25
+            self.assertEqual(len(keys),len(set(keys)))
