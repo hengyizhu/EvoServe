@@ -1,5 +1,5 @@
 """Claim pending learning jobs on GPU0, and GPU1 whenever it becomes free."""
-import argparse,csv,fcntl,json,os,subprocess,sys,threading,time,traceback
+import argparse,csv,fcntl,json,os,shutil,subprocess,sys,threading,time,traceback
 from pathlib import Path
 
 def read(p):return json.loads(Path(p).read_text()) if Path(p).is_file() else {}
@@ -71,6 +71,15 @@ def main(root):
      job.update(state='retrying' if attempt==1 else 'failed',error=read(jobfile.parent/'status.json').get('error',f'exit {rc}'));persist()
    with mutex:
     if job['state']=='running':job.update(state='failed',error='Retry budget exhausted before queue restart');persist()
+   if job['state']=='failed':
+    # Failed generated prefixes must not consume the next task's cache budget.
+    # Training checkpoints, timing, identities, and failure logs remain intact.
+    removed=[]
+    for cpath in jobfile.parent.glob('*config.json'):
+     cfg=read(cpath);cache=Path(cfg.get('cache_dir','/nonexistent'))
+     if cache.parent in [Path('/var/tmp/hengyi_pi05_r128_20261116/prefix_store'),Path('/dev/shm/hengyi_pi05_r128_20261116/prefix_store')] and cache.name.startswith(job['name']) and cache.is_dir():
+      shutil.rmtree(cache);removed.append(str(cache))
+    save(jobfile.parent/'failed_cache_cleanup.json',dict(generated_cache_removed=removed,checkpoints_retained=True))
    empty_since=None
  threading.Thread(target=heartbeat,daemon=True).start();persist()
  threads=[threading.Thread(target=worker,args=(g,)) for g in [0,1]]
