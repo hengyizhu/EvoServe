@@ -169,6 +169,8 @@ def main():
     while time.monotonic_ns()<end:
      if cfg['mode']=='baseline':time.sleep(min(.05,max(0,(end-time.monotonic_ns())/1e9)));continue
      tr.ingest()
+     if cfg.get('inference_only'):
+      time.sleep(.002);continue
      if cap and time.monotonic_ns()<next_step:time.sleep(min(.002,(next_step-time.monotonic_ns())/1e9));continue
      if os.environ.get('SLO_FEEDBACK')=='1' and not tr.feedback.ready(out):
       time.sleep(.002);continue

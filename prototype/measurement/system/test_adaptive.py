@@ -1,4 +1,5 @@
 import importlib.util,json,sys,tempfile,unittest
+from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'worker'))
 from adaptive_feedback import Rule,Feedback
@@ -43,4 +44,18 @@ class Tests(unittest.TestCase):
     ss.append(dict(start_ns=cfg['origin_ns']+int((i*5+.1)*1e9),finish_ns=cfg['origin_ns']+int((i*5+1)*1e9),experts=len(ids),expert_steps=len(ids),expert_ids=ids,optimizer_steps=list(counts),ema_steps=list(counts),loss=.01))
    (q/'steps.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in ss));r=summarize_run(p)
    self.assertEqual(r['total_expert_steps'],7);self.assertEqual([s['expert_steps'] for s in r['stages']],[1,2,4]);self.assertEqual(r['stages'][2]['slo_rate'],.8);self.assertIsNone(r['stages'][2]['p99_ms'])
+   (p/'config.json').write_text(json.dumps(dict(configuration='inference_only',initial_experts=1,inference_only=True)));(q/'steps.jsonl').unlink();r=summarize_run(p)
+   self.assertEqual(r['total_expert_steps'],0);self.assertTrue(all(s['expert_steps_per_s']==0 for s in r['stages']))
+ def test_busy_gpu1_does_not_block_gpu0_admission(self):
+  from adaptive_campaign import Run
+  with tempfile.TemporaryDirectory() as d,patch('measure.observe',return_value={'cards':{0:{'power_limit_w':225},1:{'power_limit_w':225}}}),patch('measure.time.sleep'),patch('measure.subprocess.check_output') as query:
+   query.side_effect=lambda cmd,**kw:'busy' if '--id=1' in cmd else ''
+   r=Run(str(Path(d)/'run'),'fixed1');self.assertEqual(r.admission_gpus,[0]);self.assertEqual(query.call_count,2);self.assertTrue(all('--id=0' in call.args[0] for call in query.call_args_list))
+ def test_runtime_allows_gpu1_but_rejects_foreign_gpu0(self):
+  from adaptive_campaign import Run
+  with tempfile.TemporaryDirectory() as d,patch('measure.Experiment.sample'),patch('adaptive_campaign.subprocess.check_output') as query:
+   r=object.__new__(Run);r.out=Path(d);r.mon=[{'cards':{0:{'power_limit_w':225}}}];r.before={'cards':{0:{'uuid':'gpu0'}}};r.children=[]
+   query.return_value='gpu1, 99999999, foreign-python, 16000\n';r.sample()
+   r.last_idle_check=0;query.return_value='gpu0, 99999999, foreign-python, 16000\n'
+   with self.assertRaisesRegex(RuntimeError,'External compute process on GPU0'):r.sample()
 if __name__=='__main__':unittest.main()

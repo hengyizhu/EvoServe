@@ -9,9 +9,26 @@ The queue first runs a 300-second smoke test (100 seconds each at 70%, 85%, 70%)
 then four independent 1800-second measurements, then 80% fixed-count sensitivity
 for 1/2/4/8 experts. Each failed task retries once, records the error, and advances.
 The adaptive long run requires successful smoke execution. Heartbeats are written
-every 30 minutes; GPU/host monitoring is every 2 seconds. GPU 0 measures and GPU 1
-must stay empty. External GPU 2/3 activity is recorded. Power remains 225 W;
-the runner checks it and never changes it.
+every 30 minutes; GPU/host monitoring is every 2 seconds. Under the November16
+user-approved amendment, only GPU0 must be exclusive. GPU1/2/3 activity is monitored
+and does not block admission or interrupt a measurement. Power on GPU0 remains
+225 W; the runner checks it and never changes it. The generic `measure.py` default
+retains its historical isolation policy; this campaign explicitly selects GPU0 only.
+
+Resume resource-interrupted tasks using
+`recover_resource_interruptions.py --root <output> --resume` after ensuring the
+previous waiting supervisor has exited. The recovery queue first adds an
+inference-only 70%/85%/70% baseline (600 seconds each), then finishes the two missing
+main comparisons and the80% sensitivity points. Each new run performs a60-second
+preflight before formal measurement. The inference-only baseline retains identical
+A2 export, host receipt and resident-model allocation but performs zero training
+updates. GPU kernel/state checks and warmup occur outside the timed interval.
+
+`compute_process_monitor.jsonl` records processes and CPU affinity on all cards every
+5 seconds. Foreign compute on GPU0 still interrupts the measurement; own worker
+PIDs and the owned MPS server are allowed. Reports mark old GPU1-idle results and
+new shared-host results separately and write `external_load_comparison.csv`; a
+change in external activity must not be silently treated as an equivalent condition.
 
 Use `adaptive_campaign.py report --root <output>` to rebuild the campaign summary.
 Each completed run writes `windows_5s.csv`, `stages.csv`, `result.json`, and raw

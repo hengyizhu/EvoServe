@@ -17,20 +17,21 @@ class Experiment:
   self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False);self.layout=layout;self.policy=policy;self.mps_policy='mps100' if policy=='feedback' else policy;self.mode=mode;self.smoke=smoke;self.children=[];self.daemons=[];self.mps_dirs={};self.index=0;self.mon=[];self.last=0;self.pairs=[];self.before=observe();save(self.out/'before.json',self.before)
   placements=[(gpu,gpu,0,2)] if layout=='co_one' else ([(gpu,gpu,0,1)] if layout=='single' else ([(0,0,0,2),(1,1,1,2)] if layout=='co' else [(0,1,0,1)]))
   # Admission uses live compute processes, never rolling utilization samples.
-  # The other owned card must also remain idle for single-card latency measurements.
+  # Default preserves historical isolation; a protocol may monitor other cards instead.
+  admission_gpus=sorted(set(getattr(self,'admission_gpus',[0,1]))|{g for p in placements for g in p[:2]})
   checks=[];deadline=time.monotonic()+300
   while True:
-   active={g:subprocess.check_output(['nvidia-smi',f'--id={g}','--query-compute-apps=pid,process_name','--format=csv,noheader'],text=True).strip() for g in [0,1]}
+   active={g:subprocess.check_output(['nvidia-smi',f'--id={g}','--query-compute-apps=pid,process_name','--format=csv,noheader'],text=True).strip() for g in admission_gpus}
    checks.append(dict(time=time.time(),processes=active))
    if not any(active.values()):
     time.sleep(30)
-    active={g:subprocess.check_output(['nvidia-smi',f'--id={g}','--query-compute-apps=pid,process_name','--format=csv,noheader'],text=True).strip() for g in [0,1]}
+    active={g:subprocess.check_output(['nvidia-smi',f'--id={g}','--query-compute-apps=pid,process_name','--format=csv,noheader'],text=True).strip() for g in admission_gpus}
     checks.append(dict(time=time.time(),after_settle=True,processes=active))
     if not any(active.values()):break
-   if time.monotonic()>deadline:save(self.out/'idle_admission_checks.json',checks);raise TimeoutError('GPU0/1 have compute processes; no workloads interrupted')
+   if time.monotonic()>deadline:save(self.out/'idle_admission_checks.json',checks);raise TimeoutError(f'Required GPU(s) {admission_gpus} have compute processes; no workloads interrupted')
    time.sleep(5)
   save(self.out/'idle_admission_checks.json',checks);self.before=observe();save(self.out/'before.json',self.before)
-  assert all(self.before['cards'][g]['power_limit_w']==225. for g in [0,1]),'Power limit changed; not altering settings'
+  assert all(self.before['cards'][g]['power_limit_w']==225. for g in admission_gpus),'Power limit changed; not altering settings'
   self.placements=placements
  def sample(self):
   if time.monotonic()-self.last<2:return
