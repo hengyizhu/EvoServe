@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Y_r128_forced_s08",
+    "task": "Y",
+    "preferred_gpu": 0,
+    "priority": 1,
+    "machine_b_final": 0.68
+  },
+  {
+    "name": "microwave_r128_forced_s08",
+    "task": "microwave",
+    "preferred_gpu": 0,
+    "priority": 2,
+    "machine_b_final": 0.7
+  },
+  {
+    "name": "lowlight_r128_forced_s08",
+    "task": "lowlight",
+    "preferred_gpu": 1,
+    "priority": 3,
+    "machine_b_final": 0.84
+  },
+  {
+    "name": "book_r128_forced_s08",
+    "task": "book",
+    "preferred_gpu": 1,
+    "priority": 4,
+    "machine_b_final": 0.98
+  }
+]

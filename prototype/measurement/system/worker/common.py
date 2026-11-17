@@ -10,8 +10,8 @@ def save(path,data):
 def cat_obs(items):
  return type(items[0])(**{f.name:tree_map(lambda *x:torch.cat(x,0) if torch.is_tensor(x[0]) else x[0],*[getattr(o,f.name) for o in items]) for f in dataclasses.fields(items[0])})
 class AdapterLinear(torch.nn.Module):
- def __init__(self,base,rank=32):
-  super().__init__();self.base=base;self.rank=rank;self.scale=1.
+ def __init__(self,base,rank=32,alpha=None):
+  super().__init__();self.base=base;self.rank=rank;self.scale=(rank if alpha is None else alpha)/rank
   self.lora_A=torch.nn.Parameter(torch.empty(rank,base.in_features,device=base.weight.device,dtype=base.weight.dtype));self.lora_B=torch.nn.Parameter(torch.zeros(base.out_features,rank,device=base.weight.device,dtype=base.weight.dtype));torch.nn.init.normal_(self.lora_A,std=.01)
  @property
  def weight(self):return self.base.weight
@@ -22,19 +22,20 @@ class AdapterLinear(torch.nn.Module):
 def setup_family(model,family):
  if family=='full':configure(model,'L2')
  elif family in ['lora32','lora32_heads']:
+  rank=int(os.environ.get('ACTION_LORA_RANK','32'));alpha=int(os.environ.get('ACTION_LORA_ALPHA',str(rank)))
   for p in model.parameters():p.requires_grad_(False)
   for layer in model.llm.layers:
    for name in ['q_proj','k_proj','v_proj','o_proj']:
     modules=getattr(layer.attn,name)
-    if modules[1] is not None:modules[1]=AdapterLinear(modules[1])
-   old=layer.mlps[1];new=AdapterFFN(old.features,old.hidden_dim,LoRAConfig(rank=32,alpha=32)).to(device=old.w_gating.device,dtype=old.w_gating.dtype);new.w_gating=old.w_gating;new.w_linear=old.w_linear;layer.mlps[1]=new
+    if modules[1] is not None:modules[1]=AdapterLinear(modules[1],rank,alpha)
+   old=layer.mlps[1];new=AdapterFFN(old.features,old.hidden_dim,LoRAConfig(rank=rank,alpha=alpha)).to(device=old.w_gating.device,dtype=old.w_gating.dtype);new.w_gating=old.w_gating;new.w_linear=old.w_linear;layer.mlps[1]=new
   if family=='lora32_heads':
    norms=[norms[1] for layer in model.llm.layers for norms in [layer.pre_attention_norms,layer.pre_ffw_norms]]+[model.llm.final_norms[1]]
-   for norm in norms:norm.ada_modulation=AdapterLinear(norm.ada_modulation)
+   for norm in norms:norm.ada_modulation=AdapterLinear(norm.ada_modulation,rank,alpha)
   for name,p in model.named_parameters():p.requires_grad_('lora_' in name or (family=='lora32_heads' and name.split('.')[0] in ['action_in_proj','action_out_proj','time_mlp_in','time_mlp_out']))
  else:raise ValueError(family)
  # Prefix runtime mode is fixed to serving mode. Augmentation is explicit in preprocessing.
- model.eval();pairs=[(n,p) for n,p in model.named_parameters() if p.requires_grad];assert pairs
+ model.action_lora_rank=int(os.environ.get('ACTION_LORA_RANK','32'));model.action_lora_alpha=int(os.environ.get('ACTION_LORA_ALPHA',str(model.action_lora_rank)));model.eval();pairs=[(n,p) for n,p in model.named_parameters() if p.requires_grad];assert pairs
  return pairs
 def exposure_transform(model,brightness):
  original=model._input_transform_fn;split=json.loads(Path('/home/hengyi/Workspace/01_VLA-Serving/Environment-and-Earlier-Runs/vla_followup_20261020/data_split.json').read_text())

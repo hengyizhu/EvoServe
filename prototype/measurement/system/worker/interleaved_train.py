@@ -2,7 +2,7 @@ import os,sys,argparse,time,json,threading,queue,collections,traceback,dataclass
 from pathlib import Path
 R=Path(__file__).resolve().parent
 ap=argparse.ArgumentParser();ap.add_argument('--mode',choices=['A0','A1','A2'],required=True);ap.add_argument('--out',required=True);ap.add_argument('--smoke',action='store_true');ap.add_argument('--prepare-only',action='store_true');ARGS=ap.parse_args();OUT=Path(ARGS.out)
-sys.argv=[str(R/'cache_engine.py'),'--mode',ARGS.mode,'--phase','solo' if ARGS.prepare_only else 'co','--out',str(OUT),'--family','lora32_heads','--lr','5e-5','--seed','20261108','--sequence','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_a1_baseline_20261108/sequence.json','--split','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_extended_20261109/splits/drawer.json','--perturb','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_extended_20261109/tasks/drawer_lowlight_0.json']
+sys.argv=[str(R/'cache_engine.py'),'--mode',ARGS.mode,'--phase','solo' if ARGS.prepare_only else 'co','--out',str(OUT),'--family','lora32_heads','--lr',os.environ.get('ACTION_LR','5e-5'),'--seed','20261108','--sequence','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_a1_baseline_20261108/sequence.json','--split','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_extended_20261109/splits/drawer.json','--perturb','/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_extended_20261109/tasks/drawer_lowlight_0.json']
 import cache_engine as base
 from cache_engine import torch,np,save,event,obs_map,cat_obs,tree_map,tree_flatten,stat,append,GPU
 from ipc import read_slot
@@ -127,7 +127,7 @@ def wait_file(p):
 def main():
  tr=Streaming(ARGS.mode)
  if ARGS.prepare_only:save(OUT/'status.json',{'state':'complete','samples':len(tr.new_sources),'raw_input_format':2});return
- tr.total_steps=4000;assert sum(p.numel() for _,p in tr.pairs)==20876320
+ tr.total_steps=4000;rank=int(os.environ.get('ACTION_LORA_RANK','32'));numel=sum(p.numel() for _,p in tr.pairs);assert (numel==20876320 if rank==32 else numel>20876320)
  tr.current_parts=[];tr.parity();tr.current_parts=[]
  if os.environ.get('EXPERT_COUNT'):
   if os.environ.get('DYNAMIC_BANK')=='1':from dynamic_experts import install
@@ -138,20 +138,24 @@ def main():
     _,mask,kv=tr.model.build_prefix_cache(obs_map(lambda x:x.cuda(),tr.data[key][0]));tr.store(key,(mask,kv))
   bank.validate();tr.cache={};tr.hits=tr.misses=0
  tr.init_stream();tr.replay_cache=dict(tr.cache);tr.initial_weights=snapshot(tr);tr.variants={};tr.active_variant=None;tr.receive_index=0
- save(OUT/'train_config.json',{'family':'lora32_heads','parameters':20876320,'lr':5e-5,'ema':.999,'rank':32,'microbatch':4,'accumulation':2,'trainable_modules':[n for n,p in tr.pairs]})
+ save(OUT/'train_config.json',{'family':'lora32_heads','parameters':numel,'lr':tr.learning_rate,'ema':.999,'rank':rank,'alpha':int(os.environ.get('ACTION_LORA_ALPHA',str(rank))),'microbatch':4,'accumulation':2,'trainable_modules':[n for n,p in tr.pairs]})
  thread=threading.Thread(target=tr.receive,daemon=True);thread.start();save(OUT/'train_ready.json',{'ready':True})
  try:
   for index in range(200):
    cfg=wait_file(OUT/f'command_{index:03d}.json')
    if cfg['op']=='stop':break
    if cfg['op']=='activate':
+    if cfg.get('discard_previous_variant'):tr.active_variant=None;tr.variants={}
     activate(tr,cfg);save(OUT/f'train_done_{index:03d}.json',{'complete':True,'variant':tr.active_variant,'cache_samples':len(tr.cache),'step':tr.step_id});continue
    if cfg['op']=='profile':
     from kernel_profile import profile_training
     profile_training(tr,OUT/cfg['name']);save(OUT/f'train_done_{index:03d}.json',{'complete':True});continue
    if cfg['op']=='calibrate':save(OUT/f'train_done_{index:03d}.json',{'complete':True});continue
    if os.environ.get('SLO_FEEDBACK')=='1':
-    if os.environ.get('DYNAMIC_BANK')=='1':
+    if cfg.get('feedforward_protocol'):
+     from feedforward_feedback import Feedback
+     tr.feedback=Feedback(OUT,cfg)
+    elif os.environ.get('DYNAMIC_BANK')=='1':
      from adaptive_feedback import Feedback
      tr.feedback=Feedback(OUT)
     else:
@@ -160,6 +164,10 @@ def main():
    if cfg.get('reset_expert_states'):
     restore(tr,tr.initial_weights);tr.step_id=0
    origin=cfg['origin_ns'];end=origin+round(cfg['duration_s']*1e9);out=OUT/cfg['name'];out.mkdir(exist_ok=True);cap=cfg.get('rate_cap',0);next_step=origin
+   guard=None;guard_skips=0;guard_wait_ns=0
+   if cfg.get('queue_guard'):
+    from arrival_state import Reader
+    guard=Reader(OUT,origin)
    time.sleep(max(0,(origin-time.monotonic_ns())/1e9));rows=[]
    if cfg.get('round')==1 and cfg['mode']!='baseline':tr.measure_origin=origin
    if os.environ.get('ASYNC_TRAIN')=='1' and cfg['mode']=='A2':
@@ -174,6 +182,9 @@ def main():
      if cap and time.monotonic_ns()<next_step:time.sleep(min(.002,(next_step-time.monotonic_ns())/1e9));continue
      if os.environ.get('SLO_FEEDBACK')=='1' and not tr.feedback.ready(out):
       time.sleep(.002);continue
+     guard_state=guard.read() if guard else None
+     if guard and (guard_state is None or guard_state['queue_depth']>0):
+      wait_start=time.monotonic_ns();time.sleep(.001);guard_wait_ns+=time.monotonic_ns()-wait_start;guard_skips+=1;continue
      if os.environ.get('DYNAMIC_BANK')=='1':
       tr.bank.n=tr.feedback.experts if os.environ.get('SLO_FEEDBACK')=='1' else int(os.environ.get('INITIAL_EXPERTS','1'))
      row=tr.next_step()
@@ -181,11 +192,14 @@ def main():
       row['duty']=tr.feedback.duty if os.environ.get('SLO_FEEDBACK')=='1' else 1.
       row['control_window_end_ns']=tr.feedback.last_window if os.environ.get('SLO_FEEDBACK')=='1' else 0
      if row is None:time.sleep(.002);continue
+     if guard:row.update(queue_guard=guard_state,guard_skipped_polls=guard_skips,guard_wait_ns=guard_wait_ns)
+     guard_skips=0;guard_wait_ns=0
      if cap:next_step=max(next_step+round(1e9/cap),row['start_ns']+round(1e9/cap))
      rows.append(row);append(out/'steps.jsonl',row)
      if os.environ.get('SLO_FEEDBACK')=='1':
       tr.feedback.after_step(row,out)
 
+   if guard:guard.close()
    valid=[x for x in rows if origin<=x['start_ns'] and x['finish_ns']<=end];counts={c:{k:sum(x['class_counts'][c][k] for x in valid) for k in ['hits','misses']} for c in ['new','replay']};wall=sum(x['seconds'] for x in valid)*1000;prefix={c:sum(x['prefix_compute_ms'][c] for x in valid) for c in ['new','replay']}
    save(out/'train_summary.json',{'complete_updates':len(valid),'steps_per_s':len(valid)/cfg['duration_s'],'class_counts':counts,'hit_rates':{c:counts[c]['hits']/max(1,sum(counts[c].values())) for c in counts},'prefix_compute_ms':prefix,'prefix_compute_fraction_of_step_wall':{c:prefix[c]/max(wall,1e-12) for c in prefix},'h2d_ms':stat([x['h2d_ms'] for x in valid]),'new_pool_size':len(tr.recent),'peak_cuda_bytes':max([x['peak_cuda_bytes'] for x in valid],default=0),'rate_cap':cap})
    if cfg.get('round') and cfg['mode']!='baseline':save(out/'cohort_summary.json',tr.cohort(end))

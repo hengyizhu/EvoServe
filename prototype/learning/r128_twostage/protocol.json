@@ -1,0 +1,33 @@
+{
+  "rank": 128,
+  "alpha": 128,
+  "lr": 0.0002,
+  "vision_rank": 16,
+  "vision_alpha": 16,
+  "checkpointing": false,
+  "ema": 0.999,
+  "total_steps": 4000,
+  "seed": 20261108,
+  "microbatch": 4,
+  "accumulation": 2,
+  "schedule": "50-step warmup + cosine to10%",
+  "forced_visual": true,
+  "saturation_rule": "signed d(t)-d(t-100)<0.1*d(t) twice at50-step intervals",
+  "evaluation_steps": [
+    1000,
+    2000,
+    4000
+  ],
+  "episodes": 50,
+  "simulation_processes": 6,
+  "gpu0_priority": [
+    "Y",
+    "microwave"
+  ],
+  "gpu1_priority": [
+    "lowlight",
+    "book"
+  ],
+  "resource_policy": "GPU0 continues alone while GPU1 occupied; GPU1 dynamically joins unclaimed jobs after30s process-free",
+  "machine_b_provenance": "user-provided final success rates"
+}

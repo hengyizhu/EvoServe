@@ -38,7 +38,7 @@ def summarize_run(out):
  elapsed=0
  for i,p in enumerate(cfg['phases']):
   lo=origin+round(elapsed*1e9);elapsed+=p['seconds'];hi=origin+round(elapsed*1e9)
-  stage_rows.append(dict(configuration=conf['configuration']+(' / smoke5m' if duration==300 else ''),stage=i+1,target_load=p['load'],rate=p['rate'],seconds=p['seconds'],**stats(lo,hi),power_limit_w=225))
+  stage_rows.append(dict(configuration=conf['configuration']+(' / smoke5m' if duration==300 and ('smoke' in conf['configuration'] or conf.get('smoke')) else ''),stage=i+1,target_load=p['load'],rate=p['rate'],seconds=p['seconds'],**stats(lo,hi),power_limit_w=225))
  for i in range(math.ceil(duration/5)):
   lo=origin+int(i*5e9);hi=min(origin+round(duration*1e9),lo+5_000_000_000);prior=[r for r in controls if r['observed_ns']<=lo];state=prior[-1] if prior else {};ps=[r for r in plan if lo<=r['nominal_release_ns']<hi];ob=next((r for r in decisions if r['window_start_ns']==lo),{})
   window_rows.append(dict(configuration=conf['configuration'],t_s=i*5,stage=ps[0]['stage'] if ps else None,target_load=ps[0]['target_load'] if ps else None,**stats(lo,hi),merged_experts_at_window_start=0 if conf.get('inference_only') else state.get('experts_after',initial),duty_at_window_start=0. if conf.get('inference_only') else state.get('duty_after',1.),observed_p99_ms=ob.get('p99_ms'),observed_timeout_rate=ob.get('timeout_rate'),observed_p99_status=ob.get('p99_status'),power_limit_w=225))

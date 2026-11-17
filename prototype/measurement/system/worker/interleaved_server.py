@@ -56,17 +56,21 @@ def main():
    if cfg['op']=='profile':save(OUT/f'server_done_{index:03d}.json',{'complete':True});continue
    if cfg['op']=='activate':save(OUT/f'server_done_{index:03d}.json',{'complete':True,'next_id':ident});continue
    if cfg['op']=='calibrate':
-    rows=[s.infer(i)[1] for i in range(100)];save(OUT/'calibration.json',{k:stats([r[k] for r in rows]) for k in ['service_ms','model_ms','I_PREFIX_ms','I_ACTION_ms']});save(OUT/f'server_done_{index:03d}.json',{'complete':True});continue
+    rows=[s.infer(i)[1] for i in range(cfg.get('samples',100))];save(OUT/'calibration.json',{k:stats([r[k] for r in rows]) for k in ['service_ms','model_ms','I_PREFIX_ms','I_ACTION_ms']});save(OUT/f'server_done_{index:03d}.json',{'complete':True});continue
    if cfg.get('reset_expert_states'):source_counts[cfg['variant']]=0
    mode=cfg['mode'];variant=cfg['variant'];source_counts.setdefault(variant,0);out=OUT/cfg['name'];out.mkdir(exist_ok=True);origin=cfg['origin_ns'];end=origin+round(cfg['duration_s']*1e9);plan=schedule(cfg);rows=[]
-   publisher=None
+   publisher=None;arrivals=None
+   if cfg.get('queue_guard'):
+    from arrival_state import Arrivals
+    arrivals=Arrivals(OUT,out,plan,origin)
    if os.environ.get('SLO_FEEDBACK')=='1' or os.environ.get('DYNAMIC_BANK')=='1':
     from deadline_feedback import Publisher
-    publisher=Publisher(OUT,out,plan,origin,end)
+    publisher=Publisher(OUT,out,plan,origin,end,arrivals=arrivals)
    for req in plan:
     now=stamp()
     if now>end+5_000_000_000:break
     if now<req['nominal_release_ns']:time.sleep((req['nominal_release_ns']-now)/1e9)
+    if arrivals:arrivals.before_start(req['request_id'])
     source_id=cfg.get('source_offset',0)+cfg.get('source_stride',1)*source_counts[variant];_,row=s.infer(source_id);row.update(req)
     if not prefix_checked and mode=='A2':
      prefix_checked=True
@@ -83,9 +87,11 @@ def main():
      if mode=='A2':rec=export.publish(ident,s.cache_value,rec);row.update(export_d2h_ms=rec['export_d2h_ms'],export_wall_ms=rec['export_wall_ms'],export_queue_wait_ms=rec['export_queue_wait_ms'],export_host_copy_ms=rec['export_host_copy_ms'],export_bytes=rec['export_bytes'])
      row['finish_ns']=stamp();row['service_ms']=(row['finish_ns']-row['start_ns'])/1e6;rec['available_ns']=row['finish_ns'];save(OUT/'ipc'/f'{ident:08d}.json',rec)
     ident+=1;source_counts[variant]+=1;rows.append(row)
+    if arrivals:arrivals.complete()
     if publisher:publisher.add(row)
     with (out/'requests.jsonl').open('a') as f:f.write(json.dumps(row)+'\n')
    if publisher:publisher.join()
+   if arrivals:arrivals.close()
    lat=[(x['finish_ns']-x['nominal_release_ns'])/1e6 for x in rows];passed=sum(x['finish_ns']<=x['deadline_ns'] for x in rows)
    # Graph CUDA events capture elapsed graph duration (including MPS interference), not SM utilization.
    busy=sum(max(0,min(end,x['start_ns']+round((x['input_wall_ms']+x['copy_submit_wall_ms']+x['model_ms'])*1e6))-max(origin,x['start_ns']+round((x['input_wall_ms']+x['copy_submit_wall_ms'])*1e6))) for x in rows)/1e9/cfg['duration_s']
