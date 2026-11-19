@@ -74,12 +74,22 @@ def run(args):
     out.mkdir(parents=True, exist_ok=False)
     specs = read(args.spec)
     assets = read(BASE / "configs/machine_a.example.json")["assets"]
-    ids = list(range(4))
+    if args.paired:
+        specs = [s for s in specs if s["name"] in ("camera", "Y")]
+        assert len(specs) == 2
+    from .paired import PairedScheduler
+
+    ids = list(range(len(specs)))
+    per_expert = 8 // len(specs)
     robot_ids = list(range(8))
     rng = random.Random(20261108)
     prior = read(BASE / "configs/learning_prior.json")
-    sched = Scheduler(
-        [ExpertState(e, [2 * e, 2 * e + 1], "parent") for e in ids],
+    scheduler_class = PairedScheduler if args.paired else Scheduler
+    sched = scheduler_class(
+        [
+            ExpertState(e, list(range(e * per_expert, (e + 1) * per_expert)), "parent")
+            for e in ids
+        ],
         LearningPrior(prior["points"], prior["default_amplitude"]),
     )
     for e in ids:
@@ -108,8 +118,12 @@ def run(args):
     unassisted = {}
     paths = {}
 
+    noise_base = {}
+    block = {}
+    validation_sizes = {e: [] for e in ids}
+
     def begin(r):
-        e = r // 2
+        e = r // per_expert
         ep = episodes[r]
         key = f"{r}-{ep}"
         v = sched.begin_episode(e, r, key)
@@ -118,7 +132,14 @@ def run(args):
         versions[r] = v
         pending[r] = None
         unassisted[r] = deque(maxlen=8)
-        return submit(r, sim.reset, specs[e], ep, 20261108 + ep * 4 + e)
+        assignment = sched.experts[e].active_episodes[key]
+        state = assignment.get(
+            "state", ep * per_expert + r % per_expert if args.paired else ep
+        )
+        seed = assignment.get("seed", 20261108 + state * 4 + e)
+        noise_base[r] = seed if "pair" in assignment else None
+        block[r] = 0
+        return submit(r, sim.reset, specs[e], state, seed)
 
     init = {r: begin(r) for r in robot_ids}
     with torch.cuda.device(0):
@@ -180,6 +201,10 @@ def run(args):
                     if period_prod[e]
                     else None,
                     steps=st.step,
+                    pairs_per_finished_validation=validation_sizes[e],
+                    episodes_per_finished_validation=[
+                        2 * n for n in validation_sizes[e]
+                    ],
                     validations_started=started[e],
                     validations=validated[e],
                     promotions=promoted[e],
@@ -194,6 +219,8 @@ def run(args):
         out / "ready.json",
         dict(
             seed=20261108,
+            paired=args.paired,
+            robots_per_expert=per_expert,
             robots=8,
             simulator_processes=6,
             expert_names=[s["name"] for s in specs],
@@ -221,9 +248,11 @@ def run(args):
                 msgs = [
                     dict(
                         raw=raw[r],
-                        expert=r // 2,
+                        expert=r // per_expert,
                         version=versions[r],
-                        seed=20261108 + r + tick * 8,
+                        seed=noise_base[r] * 1024 + block[r]
+                        if noise_base[r] is not None
+                        else 20261108 + r + tick * 8,
                     )
                     for r in robots
                 ]
@@ -237,11 +266,12 @@ def run(args):
                 acts, kv = predict(serving, 0, msgs, True)
                 op, _ = teacher.result()
                 for i, r in enumerate(robots):
+                    block[r] += 1
                     current[r] = dict(raw=raw[r], prefix=kv[i])
                     futures[r] = submit(r, sim.execute, acts[i], op[i], 520)
             for r, f in futures.items():
                 row = f.result()
-                e = r // 2
+                e = r // per_expert
                 st = sched.experts[e]
                 frames[e] += len(row["flags"])
                 interventions[e] += sum(row["flags"])
@@ -268,6 +298,14 @@ def run(args):
                         out / "episodes.jsonl",
                         dict(
                             expert=e,
+                            pairing={
+                                k: v
+                                for k, v in st.active_episodes[
+                                    f"{r}-{episodes[r]}"
+                                ].items()
+                                if k
+                                in ("arm", "pair", "state", "seed", "trial_started")
+                            },
                             robot=r,
                             episode=episodes[r],
                             version=versions[r],
@@ -279,11 +317,21 @@ def run(args):
                     )
                     if versions[r] == st.production:
                         period_prod[e].append(int(row["autonomous"]))
-                    event = sched.end_episode(
-                        e, f"{r}-{episodes[r]}", row["autonomous"]
-                    )
+                    if args.paired:
+                        event = sched.end_scored_episode(
+                            e,
+                            f"{r}-{episodes[r]}",
+                            row["autonomous"],
+                            row["corrections"],
+                            row["steps"],
+                        )
+                    else:
+                        event = sched.end_episode(
+                            e, f"{r}-{episodes[r]}", row["autonomous"]
+                        )
                     if event:
                         event["elapsed_s"] = time.monotonic() - start
+                        validation_sizes[e].append(event["episodes_per_arm"])
                         validated[e] += 1
                         promoted[e] += int(event["decision"] == "promote")
                         append(out / "validation.jsonl", event)
@@ -382,6 +430,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--spec", required=True)
+    p.add_argument("--paired", action="store_true")
     p.add_argument("--seconds", type=int, help="Optional bounded standalone run")
     p.add_argument("--until-epoch", type=float)
     run(p.parse_args())

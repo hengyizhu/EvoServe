@@ -340,11 +340,13 @@ class Scheduler:
 
     def finish_validation(self, e):
         t = e.trial
-        p, c = sum(t['production_outcomes'])/self.n, sum(t['candidate_outcomes'])/self.n
+        n = len(t['production_outcomes'])
+        assert n == len(t['candidate_outcomes']) and n > 0
+        p, c = sum(t['production_outcomes'])/n, sum(t['candidate_outcomes'])/n
         e.validations.append((t['step']-e.production_step,c-p))
         event = dict(event='validation_finished',expert=e.expert,decision=e.pending_decision,
                      predicted=t['prediction']['success'], predicted_gain=t['prediction']['success']-t['prediction']['production_success'],
-                     actual_candidate=c,actual_production=p,episodes_per_arm=self.n,step=t['step'],
+                     actual_candidate=c,actual_production=p,episodes_per_arm=n,step=t['step'],
                      old_version=e.production,candidate_version=e.candidate,epoch=e.epoch)
         if e.pending_decision=='promote':
             e.production=e.candidate

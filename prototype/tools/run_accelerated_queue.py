@@ -44,12 +44,14 @@ def diagnosis(out, names):
     )
 
 
-def main(root):
+def main(root, paired=False):
     state = root / "accelerated_status.json"
     save(state, dict(state="waiting_for_latency", morning_cutoff=None))
-    while (read(root / "queue_status.json", {}) or {}).get(
-        "phase"
-    ) != "latency_finished":
+    while (
+        not paired
+        and (read(root / "queue_status.json", {}) or {}).get("phase")
+        != "latency_finished"
+    ):
         time.sleep(10)
     machine = read(proto / "configs/machine_a.example.json")
     env = dict(os.environ)
@@ -73,6 +75,8 @@ def main(root):
     )
     spec = proto / "configs/accelerated.machine_a.json"
     names = [s["name"] for s in read(spec)]
+    if paired:
+        names = [name for name in names if name in ("camera", "Y")]
     start = None
     for attempt in (1, 2):
         while any(
@@ -101,6 +105,8 @@ def main(root):
             "--spec",
             str(spec),
         ]
+        if paired:
+            args.append("--paired")
         with (root / f"continuous_{attempt}.log").open("a") as log:
             if start is None:
                 start = time.monotonic()
@@ -166,4 +172,6 @@ def main(root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
-    main(parser.parse_args().root)
+    parser.add_argument("--paired", action="store_true")
+    options = parser.parse_args()
+    main(options.root, options.paired)
