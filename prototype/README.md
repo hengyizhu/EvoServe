@@ -276,3 +276,13 @@ remain in the raw records. The initial one-minute M1 checks that conflated these
 counters are preserved; `repair_reset_gate.py` inserts a separate ten-minute
 retest at an idle boundary before capacity measurement, without interrupting an
 already-running GPU test.
+
+### Accelerated HG-DAgger run on Machine A
+
+From the repository root, with the π0.5 environment active, run
+`python prototype/tools/run_accelerated_queue.py --root /var/tmp/hengyi_pi05_margin_closedloop_20261118 --until 2026-11-19T08:00`.
+The runner waits for the latency campaign, then for GPU 0 and GPU 1 to be free. The 15-minute trial clock starts after graph capture and simulator initialization. A completed promotion gates the fresh overnight run. Both arms start from the parent in each run.
+
+Eight robots share six simulation processes. GPU 0 serves and trains, GPU 1 runs the four operator checkpoints in `configs/accelerated.machine_a.json`. Each expert earns one update per four newly eligible ten-action windows. An update samples four corrections or successful autonomous windows and four original demonstration windows. Up to two experts share an update. The 2 cm trigger compares the OSC translation commands in metres. The 2 mm trigger uses the past 20 control steps. Validation counts autonomous successes and uses 50 candidate and 50 production episodes per decision.
+
+Each run emits `episodes.jsonl`, `updates.jsonl`, `validation.jsonl` (at first validation), `metrics.jsonl` (every 30 minutes and on exit), and `result.json`. Durations in this mode measure the learning loop at full simulator speed.

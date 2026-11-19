@@ -1,0 +1,58 @@
+[
+  {
+    "task_id": 6,
+    "name": "camera",
+    "checkpoint": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_followon_20261112/B/training/new_camera_action_s08/ema_4000.pt",
+    "split": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_followon_20261112/B/splits/new_camera.json",
+    "perturb": {
+      "kind": "camera_orbit",
+      "degrees": 45,
+      "target_prompt": "put the white mug on the plate and put the chocolate pudding to the right of the plate"
+    }
+  },
+  {
+    "task_id": 4,
+    "name": "Y",
+    "checkpoint": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_adaptive_validate_20261111/training/new_Y_task4_action_s08_train/ema_4000.pt",
+    "split": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_adaptive_validate_20261111/splits/new_Y_task4.json",
+    "perturb": {
+      "kind": "camera_shift",
+      "fraction": 0.25,
+      "target_prompt": "put the white mug on the left plate and put the yellow and white mug on the right plate"
+    }
+  },
+  {
+    "task_id": 3,
+    "name": "lowlight",
+    "checkpoint": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_night_20261110/training/p01_drawer_s08_action_d100/ema_4000.pt",
+    "split": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_night_20261110/splits/drawer_d100.json",
+    "perturb": {
+      "kind": "exposure",
+      "factor": 0.05,
+      "target_prompt": "put the black bowl in the bottom drawer of the cabinet and close it"
+    }
+  },
+  {
+    "task_id": 8,
+    "name": "texture",
+    "checkpoint": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_followon_20261112/B/training/new_texture_action_s08/ema_4000.pt",
+    "split": "/home/hengyi/Workspace/01_VLA-Serving/Experiments/pi05_followon_20261112/B/splits/new_texture.json",
+    "perturb": {
+      "kind": "table_texture",
+      "cells": 4,
+      "colors": [
+        [
+          245,
+          15,
+          180
+        ],
+        [
+          0,
+          245,
+          80
+        ]
+      ],
+      "target_prompt": "put both moka pots on the stove"
+    }
+  }
+]
