@@ -151,7 +151,7 @@ def run(args):
 
     pool = ThreadPoolExecutor(1)
     start = time.monotonic()
-    deadline = start + args.seconds
+    deadline = start + args.seconds if args.seconds is not None else float("inf")
     next_log = start + 1800
     tick = 0
 
@@ -287,6 +287,11 @@ def run(args):
                         validated[e] += 1
                         promoted[e] += int(event["decision"] == "promote")
                         append(out / "validation.jsonl", event)
+                        if (
+                            event["decision"] == "promote"
+                            and sum(promoted.values()) == 1
+                        ):
+                            save(out / "first_promotion.json", event)
                         if event["decision"] == "discard":
                             trainer.discard(e, paths.get(st.production))
                         unused = (
@@ -340,6 +345,7 @@ def run(args):
                         elapsed_s=time.monotonic() - start,
                         steps={e: sched.experts[e].step for e in ids},
                         eligible_online={e: len(online[e]) for e in ids},
+                        validations_started=started,
                         validations=validated,
                         promotions=promoted,
                         trials={
@@ -376,6 +382,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--spec", required=True)
-    p.add_argument("--seconds", required=True, type=int)
+    p.add_argument("--seconds", type=int, help="Optional bounded standalone run")
     p.add_argument("--until-epoch", type=float)
     run(p.parse_args())

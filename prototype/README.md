@@ -280,8 +280,8 @@ already-running GPU test.
 ### Accelerated HG-DAgger run on Machine A
 
 From the repository root, with the π0.5 environment active, run
-`python prototype/tools/run_accelerated_queue.py --root /var/tmp/hengyi_pi05_margin_closedloop_20261118 --until 2026-11-19T08:00`.
-The runner waits for the latency campaign, then for GPU 0 and GPU 1 to be free. The 15-minute trial clock starts after graph capture and simulator initialization. A completed promotion gates the fresh overnight run. Both arms start from the parent in each run.
+`python prototype/tools/run_accelerated_queue.py --root /var/tmp/hengyi_pi05_margin_closedloop_20261118`.
+The runner waits for the latency campaign, then for GPU 0 and GPU 1 to be free. The trial starts when the worker launches. After 15 minutes the same worker keeps collecting. The first validated promotion marks the start of formal operation in place, with no morning cutoff. After two hours without a promotion the supervisor saves per-expert diagnostic evidence and stops the worker group.
 
 Eight robots share six simulation processes. GPU 0 serves and trains, GPU 1 runs the four operator checkpoints in `configs/accelerated.machine_a.json`. Each expert earns one update per four newly eligible ten-action windows. An update samples four corrections or successful autonomous windows and four original demonstration windows. Up to two experts share an update. The 2 cm trigger compares the OSC translation commands in metres. The 2 mm trigger uses the past 20 control steps. Validation counts autonomous successes and uses 50 candidate and 50 production episodes per decision.
 

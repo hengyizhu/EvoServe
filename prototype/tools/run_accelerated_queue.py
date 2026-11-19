@@ -1,15 +1,52 @@
 """Wait for the owned latency campaign, then gate the overnight run on a real promotion."""
 
-import argparse, datetime, json, os, subprocess, sys, time
+import argparse, os, signal, subprocess, sys, time, json
 from pathlib import Path
-from zoneinfo import ZoneInfo
+
 
 proto = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(proto))
 from evoserve.io import read, save
 
 
-def main(root, until):
+def diagnosis(out, names):
+    progress = read(out / "progress.json", {}) or {}
+    events = []
+    path = out / "validation.jsonl"
+    if path.exists():
+        for line in path.read_text().splitlines():
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    rows = []
+    for e, name in enumerate(names):
+        related = [v for v in events if v["expert"] == e]
+        completed = [v for v in related if v.get("event") == "validation_finished"]
+        counts = progress.get("trials", {}).get(str(e))
+        if not related:
+            cause = "validation_not_triggered"
+        elif related[-1]["event"] == "prediction":
+            cause = "collecting_validation_episodes"
+        else:
+            cause = "candidate_did_not_improve"
+        rows.append(
+            dict(
+                expert=name,
+                reason=cause,
+                validation_counts=counts,
+                steps=progress.get("steps", {}).get(str(e)),
+                completed=completed,
+            )
+        )
+    return dict(
+        ready=(out / "ready.json").exists(), latest_progress=progress, experts=rows
+    )
+
+
+def main(root):
+    state = root / "accelerated_status.json"
+    save(state, dict(state="waiting_for_latency", morning_cutoff=None))
     while (read(root / "queue_status.json", {}) or {}).get(
         "phase"
     ) != "latency_finished":
@@ -34,71 +71,99 @@ def main(root, until):
         + ":"
         + env.get("PYTHONPATH", ""),
     )
-    state = root / "accelerated_status.json"
-    for label in ["smoke", "formal"]:
-        for attempt in [1, 2]:
-            while any(
-                subprocess.check_output(
-                    [
-                        "nvidia-smi",
-                        "-i",
-                        str(g),
-                        "--query-compute-apps=pid",
-                        "--format=csv,noheader",
-                    ],
-                    text=True,
-                ).strip()
-                for g in [0, 1]
-            ):
-                save(state, dict(state="waiting_for_two_gpus", phase=label))
-                time.sleep(15)
-            if time.time() >= until:
-                save(state, dict(state="morning_cutoff", phase=label))
-                return
-            out = root / f"{label}_{attempt}"
-            args = [
-                sys.executable,
-                "-u",
-                "-m",
-                "evoserve.accelerated",
-                "--out",
-                str(out),
-                "--spec",
-                str(proto / "configs/accelerated.machine_a.json"),
-                "--seconds",
-                str(900 if label == "smoke" else 86400),
-                "--until-epoch",
-                str(until),
-            ]
-            with (root / f"{label}_{attempt}.log").open("a") as log:
-                p = subprocess.Popen(
-                    args, cwd=proto, env=env, stdout=log, stderr=subprocess.STDOUT
-                )
+    spec = proto / "configs/accelerated.machine_a.json"
+    names = [s["name"] for s in read(spec)]
+    start = None
+    for attempt in (1, 2):
+        while any(
+            subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "-i",
+                    str(g),
+                    "--query-compute-apps=pid",
+                    "--format=csv,noheader",
+                ],
+                text=True,
+            ).strip()
+            for g in (0, 1)
+        ):
+            save(state, dict(state="waiting_for_two_gpus"))
+            time.sleep(15)
+        out = root / f"continuous_{attempt}"
+        args = [
+            sys.executable,
+            "-u",
+            "-m",
+            "evoserve.accelerated",
+            "--out",
+            str(out),
+            "--spec",
+            str(spec),
+        ]
+        with (root / f"continuous_{attempt}.log").open("a") as log:
+            if start is None:
+                start = time.monotonic()
+            p = subprocess.Popen(
+                args,
+                cwd=proto,
+                env=env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            info = dict(
+                pid=p.pid, output=str(out), started_epoch=time.time(), attempt=attempt
+            )
+            while p.poll() is None:
+                elapsed = time.monotonic() - start
+                first = read(out / "first_promotion.json")
+                if first:
+                    phase = "formal"
+                elif elapsed < 900:
+                    phase = "smoke"
+                else:
+                    phase = "extended_smoke"
+                if elapsed >= 7200 and not first:
+                    # Quiesce the worker before taking its final evidence snapshot.
+                    os.killpg(p.pid, signal.SIGSTOP)
+                    first = read(out / "first_promotion.json")
+                    if not first:
+                        reason = diagnosis(out, names)
+                        save(root / "no_promotion_diagnosis.json", reason)
+                        os.killpg(p.pid, signal.SIGTERM)
+                        os.killpg(p.pid, signal.SIGCONT)
+                        try:
+                            p.wait(timeout=15)
+                        except subprocess.TimeoutExpired:
+                            os.killpg(p.pid, signal.SIGKILL)
+                            p.wait()
+                        save(
+                            state,
+                            dict(
+                                state="stopped_for_diagnosis", elapsed_s=elapsed, **info
+                            ),
+                        )
+                        return
+                    os.killpg(p.pid, signal.SIGCONT)
+                    phase = "formal"
                 save(
                     state,
-                    dict(state="running", phase=label, pid=p.pid, output=str(out)),
+                    dict(state=phase, elapsed_s=elapsed, first_promotion=first, **info),
                 )
-                rc = p.wait()
-            result = read(out / "result.json", {})
-            if rc == 0 and result:
-                break
-        else:
-            save(state, dict(state="execution_failed", phase=label, output=str(out)))
-            return
-        if label == "smoke" and not result["smoke_gate_passed"]:
-            save(state, dict(state="smoke_gate_unmet", result=result, output=str(out)))
-            return
-    save(state, dict(state="finished", result=result))
+                time.sleep(5)
+            if read(out / "first_promotion.json"):
+                save(
+                    state,
+                    dict(
+                        state="formal_process_exited", returncode=p.returncode, **info
+                    ),
+                )
+                return
+    save(state, dict(state="execution_failed", returncode=p.returncode, **info))
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("--root", type=Path, required=True)
-    p.add_argument("--until", required=True)
-    a = p.parse_args()
-    main(
-        a.root,
-        datetime.datetime.fromisoformat(a.until)
-        .replace(tzinfo=ZoneInfo("America/New_York"))
-        .timestamp(),
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, required=True)
+    main(parser.parse_args().root)
