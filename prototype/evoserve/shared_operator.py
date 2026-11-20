@@ -19,10 +19,10 @@ def serve(socket):
         }
     lock = threading.Lock()
 
-    def handle(method, messages):
-        assert method == "actions"
+    def handle(request):
+        assert request["op"] == "actions"
         with lock, torch.cuda.device(0):
-            return op.infer_batch(messages)[0]
+            return op.infer_batch(request["messages"])[0]
 
     server = RPCServer(socket, handle)
     threading.Event().wait()
