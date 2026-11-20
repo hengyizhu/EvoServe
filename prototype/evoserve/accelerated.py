@@ -70,6 +70,17 @@ def make_prefix(tr, raw):
         return tr.map(lambda x: x.detach().cpu(), (mask, kv))
 
 
+def online_sources(batch):
+    counts = Counter(item["source"] for item in batch)
+    if len(batch) != 8 or set(counts) - {"intervention", "autonomous_success"}:
+        raise ValueError(f"Invalid online training batch: {counts}")
+    return dict(
+        intervention=counts["intervention"],
+        autonomous_success=counts["autonomous_success"],
+        offline=0,
+    )
+
+
 def run(args):
     import numpy as np, torch
 
@@ -108,7 +119,7 @@ def run(args):
     def submit(r, fn, *a):
         return workers[r % 6].submit(fn, r, *a)
 
-    offline = [Offline(s["split"]) for s in specs]
+    offline = [] if args.online_only else [Offline(s["split"]) for s in specs]
     online = [deque(maxlen=128) for e in ids]
     started = Counter()
     period_frames = Counter()
@@ -155,7 +166,7 @@ def run(args):
     if args.branches:
         from .branches import Branches
 
-        branches = Branches(assets, ids, out, specs)
+        branches = Branches(assets, ids, out, specs, online_only=args.online_only)
         trainer = branches.train["r32"]
     else:
         with torch.cuda.device(0):
@@ -259,6 +270,7 @@ def run(args):
             seed=20261108,
             paired=args.paired,
             fixed50=args.fixed50,
+            training_data="online_only" if args.online_only else "mixed",
             robots_per_expert=per_expert,
             robots=8,
             simulator_processes=6,
@@ -331,9 +343,11 @@ def run(args):
                     if len(label) == 10:
                         sample["actions"] = label
                         if all(sources):
+                            sample["source"] = "intervention"
                             online[e].append(sample)
                             credit[e] += 1
                         elif not any(sources):
+                            sample["source"] = "autonomous_success"
                             unassisted[r].append(sample)
                 pending[r] = (current[r], row["actions"], row["flags"])
                 raw[r] = row["raw"]
@@ -429,7 +443,9 @@ def run(args):
                 }
                 with torch.cuda.device(1 if branches else 0):
                     batches = {
-                        e: [
+                        e: training_rng[e].choices(online[e], k=8)
+                        if args.online_only
+                        else [
                             offline[e].sample(training_rng[e], trainer)
                             for _ in range(4)
                         ]
@@ -438,6 +454,11 @@ def run(args):
                     }
                     result = (
                         branches.step(batches) if branches else trainer.step(batches)
+                    )
+                if args.online_only:
+                    append(
+                        out / "batch_sources.jsonl",
+                        {e: online_sources(batch) for e, batch in batches.items()},
                     )
                 append(out / "updates.jsonl", result)
                 for e in selected:
@@ -512,6 +533,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--spec", required=True)
+    p.add_argument("--online-only", action="store_true")
     p.add_argument("--branches", action="store_true")
     p.add_argument("--operator-socket")
     p.add_argument("--start-gate")

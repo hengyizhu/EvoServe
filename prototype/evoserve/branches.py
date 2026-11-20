@@ -10,7 +10,8 @@ from .io import append, read
 
 
 class Branches:
-    def __init__(self, assets, ids, out, specs):
+    def __init__(self, assets, ids, out, specs, online_only=False):
+        self.online_only = online_only
         self.out = out
         self.specs = specs
         self.ids = ids
@@ -211,8 +212,11 @@ class Branches:
             path.mkdir()
             ex = self.train["r128"].experts[e]
             spec = dict(
-                online=[{k: x[k] for k in ("raw", "actions")} for x in online[e]],
-                split=self.specs[e]["split"],
+                online=[
+                    {k: x[k] for k in ("raw", "actions", "source")} for x in online[e]
+                ],
+                online_only=self.online_only,
+                **({} if self.online_only else {"split": self.specs[e]["split"]}),
                 seed=20261108 + e,
                 step=ex["lr_step"],
                 optimizer={

@@ -39,7 +39,7 @@ def attach_visual(model):
 
 def run(job):
     from .backend import Model
-    from .accelerated import Offline, read, BASE, make_prefix
+    from .accelerated import Offline, read, BASE, make_prefix, online_sources
 
     sys.path.insert(0, str(BASE / "learning/r128_twostage"))
     from switch_rule import decision
@@ -48,7 +48,7 @@ def run(job):
     tr = Model(
         read(BASE / "configs/machine_a.example.json")["assets"], rank=128, visual=True
     )
-    offline = Offline(spec["split"])
+    offline = None if spec.get("online_only") else Offline(spec["split"])
     online = spec["online"]
     rng = random.Random(spec["seed"])
     pairs = {**tr.pairs, **tr.visual}
@@ -89,9 +89,12 @@ def run(job):
     n = 0
     while True:
         n += 1
-        samples = rng.choices(online, k=4) + [
-            offline.sample(rng, tr, raw_only=True) for _ in range(4)
-        ]
+        samples = (
+            rng.choices(online, k=8)
+            if offline is None
+            else rng.choices(online, k=4)
+            + [offline.sample(rng, tr, raw_only=True) for _ in range(4)]
+        )
         rng.shuffle(samples)
         for start in (0, 4):
             items = [
@@ -128,6 +131,8 @@ def run(job):
             else 0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * min(1.0, (j - 50) / 3950)))
         )
         opt.step()
+        if offline is None:
+            append(job / "batch_sources.jsonl", dict(step=n, **online_sources(samples)))
         opt.zero_grad(set_to_none=True)
         with torch.no_grad():
             for k, p in pairs.items():

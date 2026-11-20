@@ -50,6 +50,7 @@ def launch(root, name):
         args = [
             "evoserve.accelerated",
             "--paired",
+            "--online-only",
             "--out",
             str(root / name),
             "--spec",
