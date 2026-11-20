@@ -28,7 +28,7 @@ class Offline:
         ]
         self.tables = {}
 
-    def sample(self, rng, tr):
+    def sample(self, rng, tr, raw_only=False):
         import numpy as np, pyarrow.parquet as pq
         from PIL import Image
 
@@ -52,19 +52,22 @@ class Offline:
             raw[dst] = np.asarray(
                 Image.open(io.BytesIO(row[src]["bytes"])).convert("RGB")
             )
-        obs, _ = tr.prepare(raw)
-        with tr.torch.no_grad():
-            _, mask, kv = tr.model.build_prefix_cache(
-                tr.obs_map(lambda x: x.cuda(), obs)
-            )
-            prefix = tr.map(lambda x: x.detach().cpu(), (mask, kv))
-        return dict(
+        item = dict(
             raw=raw,
             actions=np.asarray(
                 table["actions"].slice(i, 10).to_pylist(), dtype=np.float32
             ),
-            prefix=prefix,
         )
+        if not raw_only:
+            item["prefix"] = make_prefix(tr, raw)
+        return item
+
+
+def make_prefix(tr, raw):
+    obs, _ = tr.prepare(raw)
+    with tr.torch.no_grad():
+        _, mask, kv = tr.model.build_prefix_cache(tr.obs_map(lambda x: x.cuda(), obs))
+        return tr.map(lambda x: x.detach().cpu(), (mask, kv))
 
 
 def run(args):
@@ -85,6 +88,10 @@ def run(args):
     rng = random.Random(20261108)
     prior = read(BASE / "configs/learning_prior.json")
     scheduler_class = PairedScheduler if args.paired else Scheduler
+    if args.branches:
+        from .branch_scheduler import BranchScheduler
+
+        scheduler_class = BranchScheduler
     sched = scheduler_class(
         [
             ExpertState(e, list(range(e * per_expert, (e + 1) * per_expert)), "parent")
@@ -144,19 +151,33 @@ def run(args):
         return submit(r, sim.reset, specs[e], state, seed)
 
     init = {r: begin(r) for r in robot_ids}
-    with torch.cuda.device(0):
-        serving = BatchedGraphModel(assets, (1, 2, 4))
-        trainer = TrainModel(assets, ids, 20261108)
-        for e in ids:
-            serving.install(e, "parent")
-    with torch.cuda.device(1):
-        operator = BatchedGraphModel(assets, (1, 2, 4))
-        for e, s in enumerate(specs):
-            weights, _ = load_operator(s["checkpoint"], operator.pairs, s["task_id"])
-            operator.slots[e, "operator"] = {
-                n: x.to(device="cuda", dtype=operator.pairs[n].dtype)
-                for n, x in weights.items()
-            }
+    branches = None
+    if args.branches:
+        from .branches import Branches
+
+        branches = Branches(assets, ids, out, specs)
+        trainer = branches.train["r32"]
+    else:
+        with torch.cuda.device(0):
+            serving = BatchedGraphModel(assets, (1, 2, 4))
+            trainer = TrainModel(assets, ids, 20261108)
+            for e in ids:
+                serving.install(e, "parent")
+    if args.operator_socket:
+        from .io import RPCClient
+
+        remote = RPCClient(args.operator_socket)
+    else:
+        with torch.cuda.device(1):
+            operator = BatchedGraphModel(assets, (1, 2, 4))
+            for e, s in enumerate(specs):
+                weights, _ = load_operator(
+                    s["checkpoint"], operator.pairs, s["task_id"]
+                )
+                operator.slots[e, "operator"] = {
+                    n: x.to(device="cuda", dtype=operator.pairs[n].dtype)
+                    for n, x in weights.items()
+                }
     raw.update({r: f.result() for r, f in init.items()})
 
     def predict(model, gpu, messages, cache):
@@ -173,6 +194,13 @@ def run(args):
             return actions, samples
 
     pool = ThreadPoolExecutor(1)
+    if args.start_gate:
+        save(
+            out / "initialized.json",
+            dict(robots=len(robot_ids), branches=args.branches, wall=time.time()),
+        )
+        while not Path(args.start_gate).exists():
+            time.sleep(0.3)
     start = time.monotonic()
     deadline = start + args.seconds if args.seconds is not None else float("inf")
     next_log = start + 1800
@@ -189,6 +217,9 @@ def run(args):
                     elapsed_s=time.monotonic() - start,
                     expert=specs[e]["name"],
                     production=st.production,
+                    production_branch=branches.branch_of[st.production]
+                    if branches
+                    else "r32",
                     production_success=sum(recent) / len(recent) if recent else None,
                     production_episodes=len(recent),
                     frames=frames[e],
@@ -264,18 +295,26 @@ def run(args):
                     )
                     for r in robots
                 ]
-                teacher = pool.submit(
-                    predict,
-                    operator,
-                    1,
-                    [dict(m, version="operator") for m in msgs],
-                    False,
+                teacher_msgs = [dict(m, version="operator") for m in msgs]
+                if args.operator_socket:
+                    teacher = pool.submit(remote.call, "actions", messages=teacher_msgs)
+                else:
+                    teacher = pool.submit(predict, operator, 1, teacher_msgs, False)
+                acts, kv = (
+                    branches.predict(msgs)
+                    if branches
+                    else predict(serving, 0, msgs, True)
                 )
-                acts, kv = predict(serving, 0, msgs, True)
-                op, _ = teacher.result()
+                op = teacher.result() if args.operator_socket else teacher.result()[0]
                 for i, r in enumerate(robots):
                     block[r] += 1
-                    current[r] = dict(raw=raw[r], prefix=kv[i])
+                    current[r] = dict(
+                        raw=raw[r],
+                        prefix=kv[i],
+                        vision_tag=branches.tag(r // per_expert, versions[r])
+                        if branches
+                        else "parent",
+                    )
                     futures[r] = submit(r, sim.execute, acts[i], op[i], 520)
             for r, f in futures.items():
                 row = f.result()
@@ -339,6 +378,16 @@ def run(args):
                             e, f"{r}-{episodes[r]}", row["autonomous"]
                         )
                     if event:
+                        if branches:
+                            event["branch"] = branches.branch_of[
+                                event["candidate_version"]
+                            ]
+                            event["production_branch"] = branches.branch_of[
+                                st.production
+                            ]
+                            branches.outcome(e, event)
+                        else:
+                            event["branch"] = "r32"
                         event["elapsed_s"] = time.monotonic() - start
                         validation_sizes[e].append(event["episodes_per_arm"])
                         validated[e] += 1
@@ -349,14 +398,17 @@ def run(args):
                             and sum(promoted.values()) == 1
                         ):
                             save(out / "first_promotion.json", event)
-                        if event["decision"] == "discard":
+                        if not branches and event["decision"] == "discard":
                             trainer.discard(e, paths.get(st.production))
                         unused = (
                             event["old_version"]
                             if event["decision"] == "promote"
                             else event["candidate_version"]
                         )
-                        if unused != "parent":
+                        if branches:
+                            if not st.trial:
+                                branches.prune(e, {st.production})
+                        elif unused != "parent":
                             serving.remove(e, unused)
                             paths.pop(
                                 unused
@@ -365,6 +417,8 @@ def run(args):
                     del raw[r]
                     pending[r] = None
                     unassisted[r].clear()
+            if branches:
+                branches.service_visual(online)
             selected = [e for e in sched.ranked() if credit[e] >= 4 and online[e]][:2]
             if selected:
                 training_rng = {
@@ -373,24 +427,35 @@ def run(args):
                     else rng
                     for e in selected
                 }
-                batches = {
-                    e: [offline[e].sample(training_rng[e], trainer) for _ in range(4)]
-                    + training_rng[e].choices(online[e], k=4)
-                    for e in selected
-                }
-                result = trainer.step(batches)
+                with torch.cuda.device(1 if branches else 0):
+                    batches = {
+                        e: [
+                            offline[e].sample(training_rng[e], trainer)
+                            for _ in range(4)
+                        ]
+                        + training_rng[e].choices(online[e], k=4)
+                        for e in selected
+                    }
+                    result = (
+                        branches.step(batches) if branches else trainer.step(batches)
+                    )
                 append(out / "updates.jsonl", result)
                 for e in selected:
                     credit[e] -= 4
                     st = sched.experts[e]
                     st.step += 1
                     if sched.should_validate(e) and st.production_recent:
-                        v = f"e{e}-s{st.step}"
-                        path = out / (v + ".pt")
-                        trainer.snapshot(e, path)
-                        paths[v] = path
-                        serving.install(e, v, path)
-                        sched.start_validation(e, v, time.monotonic() - start)
+                        if branches:
+                            candidates = branches.snapshot(e, st.step)
+                            v = candidates[0]
+                            sched.start_contest(e, candidates, time.monotonic() - start)
+                        else:
+                            v = f"e{e}-s{st.step}"
+                            path = out / (v + ".pt")
+                            trainer.snapshot(e, path)
+                            paths[v] = path
+                            serving.install(e, v, path)
+                            sched.start_validation(e, v, time.monotonic() - start)
                         started[e] += 1
                         append(
                             out / "validation.jsonl",
@@ -447,6 +512,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--spec", required=True)
+    p.add_argument("--branches", action="store_true")
+    p.add_argument("--operator-socket")
+    p.add_argument("--start-gate")
     p.add_argument("--fixed50", action="store_true")
     p.add_argument("--paired", action="store_true")
     p.add_argument("--seconds", type=int, help="Optional bounded standalone run")

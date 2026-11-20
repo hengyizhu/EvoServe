@@ -3,8 +3,8 @@ import dataclasses,time
 from .backend import GraphModel
 
 class BatchedGraphModel(GraphModel):
- def __init__(self,assets,batch_sizes=(1,2,4,8)):
-  super().__init__(assets);t=self.torch;owner=self
+ def __init__(self,assets,batch_sizes=(1,2,4,8),rank=32,visual=False):
+  super().__init__(assets,rank=rank,visual=visual);t=self.torch;owner=self
   class Suffix(t.nn.Module):
    def __init__(self):super().__init__();self.base=owner.model
    def forward(self,fields,noise,mask,kv):

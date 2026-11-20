@@ -22,14 +22,14 @@ def bootstrap(assets, threads):
     return repo,assets,torch
 
 
-def setup_action(model):
+def setup_action(model, rank=32):
     import torch
     from rlinf.models.embodiment.openpi.modules.lora import FeedForward,LoRAConfig
     class Linear(torch.nn.Module):
         def __init__(self,base):
             super().__init__();self.base=base
-            self.lora_A=torch.nn.Parameter(torch.empty(32,base.in_features,device=base.weight.device,dtype=base.weight.dtype))
-            self.lora_B=torch.nn.Parameter(torch.zeros(base.out_features,32,device=base.weight.device,dtype=base.weight.dtype))
+            self.lora_A=torch.nn.Parameter(torch.empty(rank,base.in_features,device=base.weight.device,dtype=base.weight.dtype))
+            self.lora_B=torch.nn.Parameter(torch.zeros(base.out_features,rank,device=base.weight.device,dtype=base.weight.dtype))
             torch.nn.init.normal_(self.lora_A,std=.01)
         @property
         def weight(self):return self.base.weight
@@ -44,18 +44,19 @@ def setup_action(model):
             modules=getattr(layer.attn,name)
             if modules[1] is not None:modules[1]=Linear(modules[1])
         old=layer.mlps[1]
-        new=FeedForward(old.features,old.hidden_dim,LoRAConfig(rank=32,alpha=32)).to(device=old.w_gating.device,dtype=old.w_gating.dtype)
+        new=FeedForward(old.features,old.hidden_dim,LoRAConfig(rank=rank,alpha=rank)).to(device=old.w_gating.device,dtype=old.w_gating.dtype)
         new.w_gating=old.w_gating;new.w_linear=old.w_linear;layer.mlps[1]=new
     for norm in [n[1] for layer in model.llm.layers for n in [layer.pre_attention_norms,layer.pre_ffw_norms]]+[model.llm.final_norms[1]]:
         norm.ada_modulation=Linear(norm.ada_modulation)
     pairs={n:p for n,p in model.named_parameters() if 'lora_' in n or n.split('.')[0] in ['action_in_proj','action_out_proj','time_mlp_in','time_mlp_out']}
     for p in model.parameters():p.requires_grad_(False)
-    assert sum(p.numel() for p in pairs.values())==20876320
+    assert rank in (32,128)
+    if rank==32: assert sum(p.numel() for p in pairs.values())==20876320
     return pairs
 
 
 class Model:
-    def __init__(self,assets,threads=1):
+    def __init__(self,assets,threads=1,rank=32,visual=False):
         repo,self.assets,self.torch=bootstrap(assets,threads)
         import numpy as np
         from omegaconf import OmegaConf
@@ -68,7 +69,11 @@ class Model:
         cfg.openpi.task='eval';cfg.openpi.action_horizon=10;cfg.openpi.action_chunk=10;cfg.openpi.discrete_state_input=False;cfg.openpi.torch_compile=False
         cfg.openpi_data={'norm_stats_path':str(self.assets/'parent/physical-intelligence/libero/norm_stats.json')}
         self.torch.manual_seed(20261108)
-        self.model=get_model(cfg).cuda().eval();self.pairs=setup_action(self.model)
+        self.model=get_model(cfg).cuda().eval();self.pairs=setup_action(self.model,rank);self.rank=rank
+        self.visual={}
+        if visual:
+            from .visual_branch import attach_visual
+            self.visual=attach_visual(self.model)
 
     def obs_map(self,fn,obs):
         return type(obs)(**{f.name:self.map(lambda x:fn(x) if self.torch.is_tensor(x) else x,getattr(obs,f.name)) for f in dataclasses.fields(obs)})
@@ -95,8 +100,8 @@ class Model:
 
 
 class GraphModel(Model):
-    def __init__(self,assets,stream_priority=-1):
-        super().__init__(assets,1);t=self.torch
+    def __init__(self,assets,stream_priority=-1,rank=32,visual=False):
+        super().__init__(assets,1,rank,visual);t=self.torch
         self.stream=t.cuda.Stream(priority=stream_priority)
         obs,_=self.prepare(self.dummy());self.static=self.obs_map(lambda x:x.to('cuda'),obs)
         self.noise=t.randn((1,10,32),device='cuda');self.graph=t.cuda.CUDAGraph()
@@ -209,8 +214,8 @@ class GraphModel(Model):
 
 
 class TrainModel(Model):
-    def __init__(self,assets,experts,seed):
-        super().__init__(assets,4);t=self.torch;self.stream=t.cuda.Stream(priority=0);self.copy=t.cuda.Stream(priority=0)
+    def __init__(self,assets,experts,seed,rank=32,visual=False):
+        super().__init__(assets,4,rank,visual);self.peak_lr=2e-4 if rank==128 else 5e-5;t=self.torch;self.stream=t.cuda.Stream(priority=0);self.copy=t.cuda.Stream(priority=0)
         self.experts={};self.seed=seed
         class Loss(t.nn.Module):
             def __init__(self,model):super().__init__();self.model=model
@@ -252,7 +257,7 @@ class TrainModel(Model):
                 (values.sum()/2).backward();losses.append(values.detach())
             for eid in ids:
                 e=self.experts[eid];e['step']+=1;e['lr_step']+=1;s=e['lr_step']
-                lr=5e-5*(s/50 if s<=50 else .1+.9*.5*(1+math.cos(math.pi*min(1.,(s-50)/3950))))
+                lr=self.peak_lr*(s/50 if s<=50 else .1+.9*.5*(1+math.cos(math.pi*min(1.,(s-50)/3950))))
                 e['optim'].param_groups[0]['lr']=lr;t.nn.utils.clip_grad_norm_(list(e['masters'].values()),1.,error_if_nonfinite=True);e['optim'].step();e['optim'].zero_grad(set_to_none=True)
                 with t.no_grad():
                     for n,p in e['masters'].items():e['ema'][n].mul_(.999).add_(p,alpha=.001)
@@ -262,7 +267,7 @@ class TrainModel(Model):
 
     def snapshot(self,expert,path):
         t=self.torch;self.stream.synchronize();e=self.experts[expert]
-        t.save(dict(parameters={n:p.detach().cpu() for n,p in e['ema'].items()},step=e['step'],weights_kind='EMA',family='lora32_heads'),path)
+        t.save(dict(parameters={n:p.detach().cpu() for n,p in e['ema'].items()},step=e['step'],weights_kind='EMA',family=f'lora{self.rank}_heads'),path)
 
     def discard(self,expert,production_path=None):
         t=self.torch;e=self.experts[expert]
