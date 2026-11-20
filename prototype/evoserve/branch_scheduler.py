@@ -13,6 +13,7 @@ class BranchScheduler(PairedScheduler):
             t["seed"] += 100000000
             random.Random(t["seed"]).shuffle(t["states"])
         t.update(
+            contestants=list(versions),
             opponents=list(versions[1:]),
             reference=(
                 versions[1] if len(versions) > 1 else self.experts[e].production
@@ -50,6 +51,7 @@ class BranchScheduler(PairedScheduler):
             old_version=e.production,
             decision="advance" if winner else "discard",
             winner=winner,
+            contestants=t["contestants"],
             final_branch_winner=bool(winner and len(t["opponents"]) == 1),
             episodes_per_arm=last["pairs"],
         )

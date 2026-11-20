@@ -138,14 +138,14 @@ class Branches:
         if event["decision"] == "advance":
             if event["final_branch_winner"]:
                 self.locked[e] = self.branch_of[event["winner"]]
-                if e in self.vision and self.locked[e] != "visual":
+                if self.locked[e] != "visual" and any(
+                    self.branch_of[v] == "visual" for v in event["contestants"]
+                ):
                     self.retired_visual.add(e)
             return
         if event["decision"] == "promote":
             self.failures[e] = 0
             self.locked[e] = self.branch_of[event["candidate_version"]]
-            if e in self.vision and self.locked[e] != "visual":
-                self.retired_visual.add(e)
         else:
             self.failures[e] += 1
             if self.failures[e] >= 2 and e not in self.pending and e not in self.vision:
