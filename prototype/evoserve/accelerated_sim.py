@@ -7,6 +7,12 @@ import sys
 robots = {}
 
 
+def bind_renderer(env):
+    # Two of the simulator workers own more than one OS Mesa context. Robosuite's
+    # offscreen render/read_pixels pair assumes the calling thread has bound it.
+    env.sim._render_context_offscreen.gl_ctx.make_current()
+
+
 def reset(robot, spec, episode, seed):
     import numpy as np
     from libero.libero import benchmark, get_libero_path
@@ -36,6 +42,7 @@ def reset(robot, spec, episode, seed):
         )
     r = robots[robot]
     env = r["env"]
+    bind_renderer(env)
     env.seed(seed)
     np.random.seed(seed)
     env.reset()
@@ -84,6 +91,7 @@ def execute(robot, policy, operator, budget, shadow_only=False):
 
     r = robots[robot]
     env = r["env"]
+    bind_renderer(env)
     controller = env.env.robots[0].controller
     actions = []
     flags = []

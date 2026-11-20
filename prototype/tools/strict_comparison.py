@@ -178,15 +178,16 @@ def main(root, old):
                         batch_binding=read(out / "batch_binding.json"),
                     ),
                 )
-                if (
-                    finished["metric"] == "autonomous"
-                    and result["candidate"]["first10_autonomous"]
-                    > result["production"]["first10_autonomous"]
+                # A direction reversal can be the consequence of the verified renderer fix.
+                # Require the actual interleaved-worker regression before dispatching.
+                regression = read(root / "fixed_render_test.json", {})
+                if not regression.get("reset_equal") or not regression.get(
+                    "step_equal"
                 ):
                     save(
                         state,
                         dict(
-                            phase="audit_disagrees_with_original_direction",
+                            phase="waiting_for_renderer_fix_verification",
                             output=str(out),
                         ),
                     )
