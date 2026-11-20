@@ -40,6 +40,8 @@ def run(args):
     norm = assets / "parent/physical-intelligence/libero/norm_stats.json"
     checks = {}
     for role, path in [("candidate", args.candidate), ("production", args.production)]:
+        if path is None:
+            continue
         ck = torch.load(path, map_location="cpu", weights_only=True)
         model.install(0, role, path)
         weights = ck["parameters"]
@@ -60,7 +62,8 @@ def run(args):
         c["kind"] == "EMA" and c["actual_slot"] == c["expected_slot"]
         for c in checks.values()
     )
-    assert checks["production"]["actual_slot"] != checks["candidate"]["actual_slot"]
+    if args.candidate:
+        assert checks["production"]["actual_slot"] != checks["candidate"]["actual_slot"]
     with torch.cuda.device(1):
         operator = BatchedGraphModel(assets, (1, 2, 4))
         weights, _ = load_operator(spec["checkpoint"], operator.pairs, spec["task_id"])
@@ -73,8 +76,8 @@ def run(args):
         with torch.cuda.device(device):
             return model.infer_batch(messages)[0]
 
-    seed = (
-        20261108 + checks["candidate"]["step"]
+    seed = 20261108 + (
+        checks["candidate"]["step"] if args.candidate else args.state_schedule_step
     )  # Original run used step-seeded validation.
     states = list(range(50))
     random.Random(seed).shuffle(states)
@@ -85,12 +88,14 @@ def run(args):
     totals = {role: [] for role in checks}
     try:
         with ThreadPoolExecutor(1) as thread:
-            for j in range(0, 2 if args.preflight else 50, 2):
-                robots = list(range(4))
+            stride = 2 if args.candidate else 4
+            for j in range(0, 2 if args.preflight else 50, stride):
+                robots = list(range(4 if args.candidate else min(4, 50 - j)))
                 role = {
-                    r: ("candidate" if r % 2 == 0 else "production") for r in robots
+                    r: ("candidate" if args.candidate and r % 2 == 0 else "production")
+                    for r in robots
                 }
-                pair = {r: j + r // 2 for r in robots}
+                pair = {r: j + (r // 2 if args.candidate else r) for r in robots}
                 jobs = {
                     r: workers[r].submit(
                         sim.reset, r, spec, states[pair[r]], seed + pair[r]
@@ -98,7 +103,7 @@ def run(args):
                     for r in robots
                 }
                 obs = {r: f.result() for r, f in jobs.items()}
-                for r in (0, 2):
+                for r in (0, 2) if args.candidate else ():
                     assert all(
                         np.array_equal(v, obs[r + 1][k]) for k, v in obs[r].items()
                     ), ("initial observation differs", pair[r])
@@ -181,7 +186,9 @@ def run(args):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    for name in ("candidate", "production", "out"):
+    p.add_argument("--candidate", type=Path)
+    p.add_argument("--state-schedule-step", type=int)
+    for name in ("production", "out"):
         p.add_argument("--" + name, type=Path, required=True)
     p.add_argument("--preflight", action="store_true")
     run(p.parse_args())
