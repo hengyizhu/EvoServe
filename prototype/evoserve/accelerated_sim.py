@@ -79,7 +79,7 @@ def observation(r, obs):
     return raw
 
 
-def execute(robot, policy, operator, budget):
+def execute(robot, policy, operator, budget, shadow_only=False):
     import numpy as np
 
     r = robots[robot]
@@ -99,7 +99,7 @@ def execute(robot, policy, operator, budget):
             < 0.002
         )
         r["taken"] |= bool(stuck or deviation > 0.02)
-        a = o if r["taken"] else p
+        a = o if r["taken"] and not shadow_only else p
         obs, *_ = env.step(a.tolist())
         r["positions"].append(obs["robot0_eef_pos"].copy())
         r["steps"] += 1

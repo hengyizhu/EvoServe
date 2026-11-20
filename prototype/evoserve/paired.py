@@ -8,10 +8,16 @@ from .core import Scheduler
 
 
 class PairedScheduler(Scheduler):
+    def __init__(self, *args, fixed50=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fixed50 = fixed50
+        self.trial_number = {e: 0 for e in self.experts}
+
     def start_validation(self, expert, candidate, now):
         super().start_validation(expert, candidate, now)
         trial = self.experts[expert].trial
-        seed = 20261108 + expert * 100000 + trial["step"]
+        self.trial_number[expert] += 1
+        seed = 20261108 + expert * 100000 + self.trial_number[expert]
         states = list(range(50))
         random.Random(seed).shuffle(states)
         trial.update(
@@ -19,7 +25,7 @@ class PairedScheduler(Scheduler):
             seed=seed,
             assigned={"candidate": 0, "production": 0},
             pairs={},
-            limit=10,
+            limit=self.n if self.fixed50 else 10,
             checks=[],
             metric=(
                 "takeover_fraction"
@@ -71,7 +77,7 @@ class PairedScheduler(Scheduler):
                     dict(pairs=n, favorable_difference=gain, paired_se=se)
                 )
                 if abs(gain) > 2 * se or n == self.n:
-                    e.pending_decision = "promote" if gain > 0 else "discard"
+                    e.pending_decision = "promote" if gain > 2 * se else "discard"
                 else:
                     t["limit"] += 10
         if e.pending_decision and not e.active_episodes:

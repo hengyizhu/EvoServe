@@ -44,7 +44,7 @@ def diagnosis(out, names):
     )
 
 
-def main(root, paired=False):
+def main(root, paired=False, cards=(0, 1), fixed50=False):
     state = root / "accelerated_status.json"
     save(state, dict(state="waiting_for_latency", morning_cutoff=None))
     while (
@@ -56,7 +56,7 @@ def main(root, paired=False):
     machine = read(proto / "configs/machine_a.example.json")
     env = dict(os.environ)
     env.update(
-        CUDA_VISIBLE_DEVICES="0,1",
+        CUDA_VISIBLE_DEVICES=",".join(map(str, cards)),
         MUJOCO_GL="osmesa",
         PYOPENGL_PLATFORM="osmesa",
         LIBERO_CONFIG_PATH=machine["assets"] + "/libero_config",
@@ -90,7 +90,7 @@ def main(root, paired=False):
                 ],
                 text=True,
             ).strip()
-            for g in (0, 1)
+            for g in cards
         ):
             save(state, dict(state="waiting_for_two_gpus"))
             time.sleep(15)
@@ -105,6 +105,8 @@ def main(root, paired=False):
             "--spec",
             str(spec),
         ]
+        if fixed50:
+            args.append("--fixed50")
         if paired:
             args.append("--paired")
         with (root / f"continuous_{attempt}.log").open("a") as log:
@@ -173,5 +175,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--paired", action="store_true")
+    parser.add_argument("--cards", nargs=2, type=int, default=[0, 1])
+    parser.add_argument("--fixed50", action="store_true")
     options = parser.parse_args()
-    main(options.root, options.paired)
+    main(options.root, options.paired, options.cards, options.fixed50)

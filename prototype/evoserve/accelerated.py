@@ -91,6 +91,7 @@ def run(args):
             for e in ids
         ],
         LearningPrior(prior["points"], prior["default_amplitude"]),
+        **({"fixed50": args.fixed50} if args.paired else {}),
     )
     for e in ids:
         sched.change_environment(e)
@@ -105,6 +106,7 @@ def run(args):
     started = Counter()
     period_frames = Counter()
     period_takeovers = Counter()
+    period_assisted = Counter()
     period_prod = {e: [] for e in ids}
     credit = Counter()
     frames = Counter()
@@ -137,7 +139,7 @@ def run(args):
             "state", ep * per_expert + r % per_expert if args.paired else ep
         )
         seed = assignment.get("seed", 20261108 + state * 4 + e)
-        noise_base[r] = seed if "pair" in assignment else None
+        noise_base[r] = seed if args.paired else None
         block[r] = 0
         return submit(r, sim.reset, specs[e], state, seed)
 
@@ -196,6 +198,10 @@ def run(args):
                     window_takeover_fraction=period_takeovers[e] / period_frames[e]
                     if period_frames[e]
                     else None,
+                    window_production_success_including_takeover=period_assisted[e]
+                    / len(period_prod[e])
+                    if period_prod[e]
+                    else None,
                     window_production_episodes=len(period_prod[e]),
                     window_production_success=sum(period_prod[e]) / len(period_prod[e])
                     if period_prod[e]
@@ -210,6 +216,7 @@ def run(args):
                     promotions=promoted[e],
                 ),
             )
+        period_assisted.clear()
         period_frames.clear()
         period_takeovers.clear()
         for outcomes in period_prod.values():
@@ -220,6 +227,7 @@ def run(args):
         dict(
             seed=20261108,
             paired=args.paired,
+            fixed50=args.fixed50,
             robots_per_expert=per_expert,
             robots=8,
             simulator_processes=6,
@@ -316,6 +324,7 @@ def run(args):
                         ),
                     )
                     if versions[r] == st.production:
+                        period_assisted[e] += int(row["success"])
                         period_prod[e].append(int(row["autonomous"]))
                     if args.paired:
                         event = sched.end_scored_episode(
@@ -349,16 +358,24 @@ def run(args):
                         )
                         if unused != "parent":
                             serving.remove(e, unused)
-                            paths.pop(unused).unlink(missing_ok=True)
+                            paths.pop(
+                                unused
+                            )  # retain EMA snapshots for independent audits
                     episodes[r] += 1
                     del raw[r]
                     pending[r] = None
                     unassisted[r].clear()
             selected = [e for e in sched.ranked() if credit[e] >= 4 and online[e]][:2]
             if selected:
+                training_rng = {
+                    e: random.Random(20261108 + 1000000 * e + sched.experts[e].step)
+                    if args.paired
+                    else rng
+                    for e in selected
+                }
                 batches = {
-                    e: [offline[e].sample(rng, trainer) for _ in range(4)]
-                    + rng.choices(online[e], k=4)
+                    e: [offline[e].sample(training_rng[e], trainer) for _ in range(4)]
+                    + training_rng[e].choices(online[e], k=4)
                     for e in selected
                 }
                 result = trainer.step(batches)
@@ -430,6 +447,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--spec", required=True)
+    p.add_argument("--fixed50", action="store_true")
     p.add_argument("--paired", action="store_true")
     p.add_argument("--seconds", type=int, help="Optional bounded standalone run")
     p.add_argument("--until-epoch", type=float)
