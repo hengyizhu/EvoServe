@@ -1,6 +1,6 @@
 """Online branch placement, vision-versioned prefix reuse, and candidate snapshots."""
 
-import os, subprocess, sys
+import os, subprocess, sys, time, math, traceback
 from collections import defaultdict, deque
 from pathlib import Path
 import torch
@@ -19,6 +19,8 @@ class Branches:
         self.failures = defaultdict(int)
         self.vision = {}
         self.waiting = deque()
+        self.next_admission = 0.0
+        self.preparing = None
         self.job = None
         self.rebuild_refs = {}
         self.retired_visual = set()
@@ -102,20 +104,47 @@ class Branches:
 
     def step(self, batches):
         result = {}
+        self.updated_experts = set()
         with torch.cuda.device(1):
             for name in ("r32", "r128", "visual"):
                 group = {}
                 for e, batch in batches.items():
-                    if name in self.options(e):
-                        key = e + 2 if name == "visual" else e
-                        group[key] = [
+                    if name not in self.options(e):
+                        continue
+                    try:
+                        items = [
                             self.cached(x, e if name == "visual" else "parent")
                             for x in batch
                         ]
+                        if name == "visual":
+                            row = self.train["r128"].step({e + 2: items})
+                            result.setdefault("visual", {})[e] = row
+                            self.updated_experts.add(e)
+                        else:
+                            group[e] = items
+                    except Exception as exc:
+                        if name == "visual":
+                            self.retired_visual.add(e)
+                            self.train["r128"].experts.pop(e + 2, None)
+                            if self.locked.get(e) == "visual":
+                                self.locked.pop(e)
+                            # Keep the immutable serving snapshot if this is the production branch.
+                            event = "visual_failed"
+                        else:
+                            event = "parent_prefix_rebuild_failed"
+                        append(
+                            self.out / "placement.jsonl",
+                            dict(
+                                event=event,
+                                expert=e,
+                                stage="cached_training",
+                                error=str(exc),
+                                time=time.time(),
+                            ),
+                        )
                 if group:
-                    result[name] = self.train["r32" if name == "r32" else "r128"].step(
-                        group
-                    )
+                    result[name] = self.train[name].step(group)
+                    self.updated_experts.update(group)
         return result
 
     def snapshot(self, e, step):
@@ -154,6 +183,57 @@ class Branches:
                 self.waiting.append(e)
 
     def service_visual(self, online, smoke=False):
+        try:
+            self._service_visual(online)
+        except Exception as exc:
+            expert = self.job[0] if self.job else self.preparing
+            if expert is None:
+                raise
+            details = traceback.format_exc()
+            if self.job:
+                _, proc, path = self.job
+                if proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait()
+            else:
+                path = self.out / f"visual_e{expert}"
+            self.job = None
+            self.vision.pop(expert, None)
+            refs = self.rebuild_refs.pop(expert, [])
+            for item in [*refs, *online[expert]]:
+                item.get("branch_prefix", {}).pop(expert, None)
+            self.retired_visual.add(expert)
+            if self.train.get("r128"):
+                self.train["r128"].experts.pop(expert + 2, None)
+            # These files are temporary transfers scoped to the failed visual job.
+            for artifact in [
+                *path.glob("prefix_*.pt"),
+                path / "rebuild.tmp",
+                path / "rebuild.pt",
+            ]:
+                try:
+                    artifact.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            append(
+                self.out / "placement.jsonl",
+                dict(
+                    event="visual_failed",
+                    expert=expert,
+                    error=str(exc),
+                    traceback=details,
+                    log=str(path / "worker.log"),
+                    time=time.time(),
+                ),
+            )
+        finally:
+            self.preparing = None
+
+    def _service_visual(self, online):
         if self.job:
             e, proc, path = self.job
             if proc.poll() is None:
@@ -207,6 +287,53 @@ class Branches:
             )
             self.job = None
         if self.waiting and len(online[self.waiting[0]]) >= 32:
+            if time.monotonic() < self.next_admission:
+                return
+            self.next_admission = time.monotonic() + 30
+            from .gpu_inventory import inventory
+
+            e = self.waiting[0]
+            target = int(os.environ["EVOSERVE_VISUAL_CARD"])
+            try:
+                gpu = inventory()[target]
+                peak = read(os.environ["EVOSERVE_VISUAL_PEAK"], {}) or {}
+                needed = (
+                    math.ceil(peak["peak_mib"] * 1.10) if peak.get("peak_mib") else None
+                )
+                allowed_pid = read(self.out.parent / "operator.pid", -1)
+                busy = [p for p in gpu["processes"] if p["pid"] != allowed_pid]
+                reason = (
+                    "waiting_for_completed_peak_profile"
+                    if needed is None
+                    else "other_compute_process"
+                    if busy
+                    else "insufficient_free_memory"
+                    if gpu["free_mib"] < needed
+                    else None
+                )
+                record = dict(
+                    card=target,
+                    free_mib=gpu["free_mib"],
+                    measured_peak_mib=peak.get("peak_mib"),
+                    required_mib=needed,
+                    processes=gpu["processes"],
+                )
+            except (OSError, subprocess.SubprocessError, ValueError, KeyError) as exc:
+                reason = "inventory_unavailable"
+                record = dict(card=target, error=str(exc))
+            append(
+                self.out / "placement.jsonl",
+                dict(
+                    event="visual_deferred" if reason else "visual_admitted",
+                    reason=reason,
+                    time=time.time(),
+                    expert=e,
+                    **record,
+                ),
+            )
+            if reason:
+                return
+            self.preparing = e
             e = self.waiting.popleft()
             path = self.out / f"visual_e{e}"
             path.mkdir()
@@ -229,9 +356,7 @@ class Branches:
             torch.save(spec, path / "input.pt")
             env = dict(
                 os.environ,
-                CUDA_VISIBLE_DEVICES=os.environ.get(
-                    "CUDA_VISIBLE_DEVICES", "0,1,2"
-                ).split(",")[2],
+                CUDA_VISIBLE_DEVICES=str(target),
             )
             with (path / "worker.log").open("a") as f:
                 proc = subprocess.Popen(

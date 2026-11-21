@@ -140,6 +140,8 @@ def run(args):
 
     noise_base = {}
     block = {}
+    validation_episodes = Counter()
+    promotion_history = {e: [] for e in ids}
     validation_sizes = {e: [] for e in ids}
 
     def begin(r):
@@ -256,6 +258,8 @@ def run(args):
                     validations_started=started[e],
                     validations=validated[e],
                     promotions=promoted[e],
+                    validation_episodes_used=validation_episodes[e],
+                    promotion_history=promotion_history[e],
                 ),
             )
         period_assisted.clear()
@@ -376,6 +380,8 @@ def run(args):
                             takeover_frames=row["corrections"],
                         ),
                     )
+                    if "arm" in st.active_episodes[f"{r}-{episodes[r]}"]:
+                        validation_episodes[e] += 1
                     if versions[r] == st.production:
                         period_assisted[e] += int(row["success"])
                         period_prod[e].append(int(row["autonomous"]))
@@ -406,6 +412,15 @@ def run(args):
                         validation_sizes[e].append(event["episodes_per_arm"])
                         validated[e] += 1
                         promoted[e] += int(event["decision"] == "promote")
+                        if event["decision"] == "promote":
+                            promotion_history[e].append(
+                                dict(
+                                    branch=event["branch"],
+                                    version=st.production,
+                                    step=st.step,
+                                    elapsed_s=event["elapsed_s"],
+                                )
+                            )
                         append(out / "validation.jsonl", event)
                         if (
                             event["decision"] == "promote"
@@ -455,10 +470,12 @@ def run(args):
                     result = (
                         branches.step(batches) if branches else trainer.step(batches)
                     )
+                if branches:
+                    selected = [e for e in selected if e in branches.updated_experts]
                 if args.online_only:
                     append(
                         out / "batch_sources.jsonl",
-                        {e: online_sources(batch) for e, batch in batches.items()},
+                        {e: online_sources(batches[e]) for e in selected},
                     )
                 append(out / "updates.jsonl", result)
                 for e in selected:
