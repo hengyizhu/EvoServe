@@ -121,6 +121,9 @@ class Run:
             env=self.base_env();env.update(CUDA_VISIBLE_DEVICES='',MUJOCO_GL='osmesa',PYOPENGL_PLATFORM='osmesa',LIBERO_CONFIG_PATH=str(Path(cfg['assets'])/'libero_config'),LP_NUM_THREADS='1',GALLIUM_DRIVER='llvmpipe',LD_LIBRARY_PATH=cfg['osmesa_lib']+':'+env.get('LD_LIBRARY_PATH',''))
             self.spawn('evoserve.robot',c,f'robot{robot}',env)
         for robot in range(0 if cfg.get('replay_source') else len(cfg['robot_experts'])):wait_file(self.out/f'robot{robot}/ready.json',self.children)
+        if cfg.get("resume_pairs"):
+            from .resume_pairs import restore
+            restore(self,cfg["resume_pairs"])
         self.origin=time.monotonic()+1;self.deadline=self.origin+cfg['seconds']
         save(self.out/'clock.json',dict(origin=self.origin,end=self.deadline,wall_time=time.time(),seconds=cfg['seconds']))
         if cfg.get('replay_source'):
@@ -138,6 +141,7 @@ class Run:
                 if version and self.pending_activation.get(e)==version:
                     append(self.out/'activations.jsonl',dict(expert=e,version=version,episode=msg['episode'],robot=msg['robot'],activation_time=time.monotonic()))
                     self.pending_activation.pop(e)
+                    if self.cfg.get("resume_pairs"):(self.out/"stop_requested").touch()
                 return dict(wait=version is None,state=pair.get('state'),seed=pair.get('seed'),version=version,production_version=self.scheduler.experts[e].production,epoch=self.scheduler.experts[e].epoch,origin=self.origin,end=self.deadline)
         if op=='environment':
             return dict(stop=self.stop.is_set() or time.monotonic()>=self.deadline,epoch=self.scheduler.experts[e].epoch,perturb=self.perturbation(e))
@@ -191,16 +195,18 @@ class Run:
             self.trainer[self.expert_trainer[e]].call('resume',expert=e,version=state.production,discard=True,production_path=self.production_paths.get(e))
             state.production_step=state.step
         append(self.out/'validation_results.jsonl',dict(event,decision_time=time.monotonic()))
+        if self.cfg.get('resume_pairs') and not self.pending_activation and all(s.trial is None for s in self.scheduler.experts.values()):
+            (self.out/'stop_requested').touch()
 
     def refresh_training(self):
-        if not self.learning:return
+        if not self.learning or self.cfg.get("resume_pairs"):return
         for gpu,client in self.trainer.items():
             st=client.call('status')
             if st['error']:raise RuntimeError(st['error'])
             for eid,steps in st['expert_steps'].items():self.scheduler.experts[int(eid)].step=steps
 
     def decide(self):
-        if not self.learning:return
+        if not self.learning or self.cfg.get("resume_pairs"):return
         with self.lock:
             for eid in self.scheduler.experts:
                 if not self.scheduler.should_validate(eid):continue
@@ -216,7 +222,7 @@ class Run:
     def write_plans(self):
         for gpu,plan in self.plans.items():
             c=self.controllers[gpu]
-            eligible=[e for e in self.ranking if self.expert_trainer[e]==gpu and not self.scheduler.experts[e].trial]
+            eligible=[] if self.cfg.get('resume_pairs') else [e for e in self.ranking if self.expert_trainer[e]==gpu and not self.scheduler.experts[e].trial]
             save(plan,dict(experts=eligible,m=c.m,duty=c.duty if self.learning else 0,time=time.monotonic()))
 
     def run(self):
