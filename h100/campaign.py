@@ -168,7 +168,12 @@ def main():
                 rows[name] = "passed"
                 break
             except Exception:
-                if mps and i==1: mps_allowed=False
+                if mps and i == 1:
+                    log_path = d / "run.log"
+                    detail = traceback.format_exc() + (log_path.read_text(errors="replace")[-12000:] if log_path.exists() else "")
+                    if any(marker in detail.lower() for marker in ("nvidia-cuda-mps-control", "mps did not confirm", "mps server", "mps client", "mps connection")):
+                        mps_allowed = False
+                        atomic(out / "transport_fallback.txt", detail)
                 (d / "error.txt").write_text(traceback.format_exc())
                 external[name] = monitor.summary(attempt_start)
                 rows[name] = f"failed attempt {i}"
