@@ -6,8 +6,8 @@ def records(path):
     if not path.exists():return []
     with path.open() as f:return [json.loads(line) for line in f if line.endswith('\n')]
 
-def record(run,hi):
-    lo=hi-300
+def record(run,hi,lo=None):
+    if lo is None:lo=hi-300
     controls=records(run.out/'controller.jsonl')
     host=[r for r in records(run.out/'host_gpu_monitor.jsonl') if lo<=r['monotonic']<hi]
     external={g: [c for r in host for c in r['cards'] if c['gpu']==g] for g in (2,3)}
@@ -18,7 +18,7 @@ def record(run,hi):
         episodes=[r for r in run.episodes if r['expert'] in es and lo<=r['finished']<hi]
         frames=sum(r['steps'] for r in episodes)
         append(run.out/'system_5min.jsonl',dict(gpu=gpu,end_s=hi-run.origin,
-            **run.ledger.window(lo,hi,hi+run.period,es),expert_steps_s=sum(len(r['experts']) for r in steps)/300,
+            **run.ledger.window(lo,hi,hi+run.period,es),expert_steps_s=sum(len(r['experts']) for r in steps)/(hi-lo),
             mean_merged_experts=sum(len(r['experts']) for r in steps)/len(steps) if steps else 0,
             mean_duty=sum(r['duty'] for r in cs)/len(cs) if cs else None,
             takeover_frame_fraction=sum(r['takeover_frames'] for r in episodes)/frames if frames else None,

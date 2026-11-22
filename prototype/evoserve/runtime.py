@@ -266,7 +266,14 @@ class Run:
                         self.event_cursor=len(self.scheduler.events)
                 time.sleep(.01)
             # No new requests; allow the final deadline to mature.
-            time.sleep(self.period+.05);return self.summarize()
+            time.sleep(self.period+.05)
+            if self.cfg.get('system_metrics'):
+                from .system_metrics import record
+                last_recorded=self.origin+300*(window//60)
+                if self.deadline>last_recorded:
+                    record(self,self.deadline,lo=last_recorded)
+            self.refresh_training()
+            return self.summarize()
         finally:self.close()
 
     def summarize(self):
