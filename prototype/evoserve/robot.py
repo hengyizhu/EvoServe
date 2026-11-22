@@ -132,7 +132,7 @@ def run(cfg):
                         # Prefer a frame at this actual action boundary for aligned online labels.
                         frame=len(assembler.actions)
                         # The preceding physics tick already submitted this state.
-                        until=next_release+min(.16,PERIOD/3)
+                        until=next_release+PERIOD/3
                         while time.monotonic()<until and (view is None or view['frame']!=frame):
                             time.sleep(.0005);view=renderer.get(episode)
                     raw=raw_observation(view,state.get('perturb')) if view else None
@@ -162,7 +162,8 @@ def run(cfg):
                         coord.call('takeover',**takeover_event);append(out/'takeovers.jsonl',takeover_event)
                         coord.call('drop',expert=cfg['expert'],refs=[x['cache_ref'] for x in reservoir]);reservoir.clear();eligible=0
                 next_tick=episode_time+(tick+1)/20
-                if (cfg.get('hg') and next_tick+1e-7>=next_release) or tick%5==1:
+                render_due=(next_tick+1e-7>=next_release) if cfg.get('hg') else (tick%5==1)
+                if render_due:
                     renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
                 tick+=1
                 if time.monotonic()-last_report>=5:
