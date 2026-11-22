@@ -8,6 +8,8 @@ git clone --branch h100-suite --single-branch https://github.com/hengyizhu/EvoSe
 
 `run_all.sh` 自动执行 `setup.sh`，安装 Python 3.11.14、锁定依赖与 PyTorch 2.11.0+cu130，下载数据并校验模型 SHA256。需要兼容 CUDA 13 的驱动、至少 80 GB 可写磁盘、能够访问 GitHub、PyPI、PyTorch wheel 源、Hugging Face 和 Google Storage。可通过 `SUITE_HOME` 选择环境与模型所在的磁盘。使用默认 250 ms 请求时限，保留云主机的功耗设置。
 
+**A6000 短版预演**于 2026-11-22T14:08-05:00 完成，50/50 个测量项目均写出结果，已核对汇总与归档内容。
+
 **时间预算**为约 3–4.5 小时，属于 H100 运行前估算。12 个固定专家数共跑点为 60 分钟，负载变化 15 分钟，重算对照 10 分钟，两个容量点的两种训练方法共 12 分钟，视觉与重建共跑 9 分钟。另预留容量搜索、独立训练、profile、各进程模型加载与预热约 40–75 分钟，安装下载约 30–75 分钟。重试、下载限速及共享云主机可能延长计费时间。
 
 每次运行独立写入 `results/h100-日期-时间/`，单项完成即刷新 `summary.md` 和 `index.json`，最终同目录旁生成 `.tar.gz`。硬件、CUDA、功耗及依赖在 `hardware.json`，测量配置、标准错误与结果在各项目的 `attempt-N/`。每项先执行预热或短测，再测正式区间。失败保留原因、重试一次、继续独立项目；依赖缺失则标为跳过。套件结束时有失败会返回非零。缩短版命令为 `./run_all.sh --quick`。
