@@ -1,3 +1,29 @@
+# EvoServe 单卡 H100 测量套件
+
+在已配置 NVIDIA 驱动、CUDA 与 MPS 的 x86_64 Ubuntu H100 云主机上，以 root 在空目录运行以下命令。私有仓库需要有读取权限。
+
+```bash
+git clone --branch h100-suite --single-branch https://github.com/hengyizhu/EvoServe.git && cd EvoServe && ./run_all.sh
+```
+
+`run_all.sh` 自动执行 `setup.sh`，安装 Python 3.11.14、锁定依赖与 PyTorch 2.11.0+cu130，下载数据并校验模型 SHA256。需要兼容 CUDA 13 的驱动、至少 80 GB 可写磁盘、能够访问 GitHub、PyPI、PyTorch wheel 源、Hugging Face 和 Google Storage。可通过 `SUITE_HOME` 选择环境与模型所在的磁盘。使用默认 250 ms 请求时限，保留云主机的功耗设置。
+
+**时间预算**为约 3–4.5 小时，属于 H100 运行前估算。12 个固定专家数共跑点为 60 分钟，负载变化 15 分钟，重算对照 10 分钟，两个容量点的两种训练方法共 12 分钟，视觉与重建共跑 9 分钟。另预留容量搜索、独立训练、profile、各进程模型加载与预热约 40–75 分钟，安装下载约 30–75 分钟。重试、下载限速及共享云主机可能延长计费时间。
+
+每次运行独立写入 `results/h100-日期-时间/`，单项完成即刷新 `summary.md` 和 `index.json`，最终同目录旁生成 `.tar.gz`。硬件、CUDA、功耗及依赖在 `hardware.json`，测量配置、标准错误与结果在各项目的 `attempt-N/`。每项先执行预热或短测，再测正式区间。失败保留原因、重试一次、继续独立项目；依赖缺失则标为跳过。套件结束时有失败会返回非零。缩短版命令为 `./run_all.sh --quick`。
+
+| 项目 | 协议与结果 |
+|---|---|
+| 梯度 | 固定四个真实 LIBERO 10 动作窗口、相同噪声和 flow 时间。独立比较服务 CUDA Graph 的 B1 缓存与训练 B1 冻结前缀重算，均拼为 B4 反向。保留逐位一致、最大绝对差与相对 L2。 |
+| 推理与容量 | 单策略 CUDA Graph，10 步去噪。静态 B1/2/4/8/16 分别记录前缀和去噪 GPU Event 耗时及含预处理的墙钟服务时间。按每机器人 4 Hz 固定到达，动态等待最多 10 ms，按到达时刻计延迟；填充到下一档 batch。同步与错峰分别按所有整数机器人数量扫描至实测乐观吞吐上界加余量，最后一点通过则继续。N* 为该次扫描内 SLO≥99% 的最大实测数。 |
+| 独立训练 | microbatch 4×累积 2；动作 LoRA r32/r128 含全量动作映射和时间 MLP。视觉阶段另开 SigLIP MLP fc1/fc2 r16，保留穿过 VLM 的梯度并关闭 checkpointing。冻结视觉逐步重算、从主机读取服务 KV、合并 1/2/4/8/16 个独立优化器均用相同示范窗口。记录墙钟步时、框架峰值 allocated 和 reserved 字节。 |
+| 共跑 | 负载 = 合计到达率 × 该卡 B1 实测平均服务时间。默认 r32。缓存组用无固定配额 MPS，与推理分进程；步边界检查等待队列，五秒超时率反馈调占空比。70/80/85% 各测 1/2/4/8 个专家，每点 300 秒。SLO≥99.5%、P99≤220 ms 且实际有更新才选入前馈表，无可行项记 0。负载变化三段各 300 秒，按一秒窗口观测到达率，档间取保守值。重算对照用单进程高优先级推理 stream、低优先级训练 stream；另在两种 N* 的原始到达流下对比。 |
+| 重计算与 profile | 实测视觉训练、B4 重建并拷回主机，以及相应 stream 共跑。Kineto/CUPTI 分离采集缓存 1/8 专家、重算及视觉训练，输出最长单个 GPU kernel 名、微秒和事件数。profile 数据不混入延迟。 |
+
+共跑 `windows.json` 包含每批请求索引、调度/完成时刻、控制变更和各段 P99、SLO、专家步/秒、平均目标占空比。每个预定到达都计入分母。缓存组读取固定示范样本的服务缓存，测得的是预生成后的训练吞吐；重建与搬回单列。
+
+模型 `RLinf/RLinf-Pi05-LIBERO-130-fullshot-SFT`，revision `6222623f635769bfc73c9472e29fab9b7fd8e027`，权重 SHA256 `4d9089c941793f170b625c2ed0ac7a3aa09b6f103e52dbbc82e67301529d6683`。数据 `physical-intelligence/libero` 固定到 `9dfa69510ea9e1613fc54112bc706444b686a231`。按仓库的输入清单下载相关 episodes，并使用保留完整动作标签的观测。历史实验入口保留如下。
+
 # EvoServe — π0.5 serving / training reproduction
 
 **Machine B learning setup:** [installation, pinned environment and1000-step book check](machine_b/README.md). This branch adds a learning-only migration path for a CPU-contended dual-A6000 host.

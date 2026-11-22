@@ -58,3 +58,6 @@ work/
 *.nsys-rep
 *.sqlite
 *.so
+/.h100/
+/results/h100-*/
+/results/h100-*.tar.gz

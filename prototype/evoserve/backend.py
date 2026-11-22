@@ -147,7 +147,7 @@ class GraphModel(Model):
     def operator_work(self):
         t=self.torch;self.operator_events[0].record();mask,kv=self.prefix;x=self.operator_noise
         for j in range(10):
-            tt=t.full((1,),1-j/10,device='cuda',dtype=t.float32)
+            tt=t.full((x.shape[0],),1-j/10,device='cuda',dtype=t.float32)
             x=x-.1*self.model.velocity_from_suffix(self.model.run_suffix(self.static,x,tt,kv,mask))
         self.operator_events[1].record();return x
 
@@ -178,7 +178,7 @@ class GraphModel(Model):
         t=self.torch;self.events[0].record()
         _,mask,kv=self.model.build_prefix_cache(self.static);self.prefix=(mask,kv);self.events[1].record();x=self.noise
         for j in range(10):
-            tt=t.full((1,),1-j/10,device='cuda',dtype=t.float32)
+            tt=t.full((x.shape[0],),1-j/10,device='cuda',dtype=t.float32)
             x=x-.1*self.model.velocity_from_suffix(self.model.run_suffix(self.static,x,tt,kv,mask));self.events[j+2].record()
         return x
 
