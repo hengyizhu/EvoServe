@@ -27,7 +27,8 @@ def percentile(values, q=.99):
 
 class DeadlineLedger:
     """Count nominal arrivals, including requests never completed."""
-    def __init__(self):
+    def __init__(self,deadline_s=DEADLINE_S):
+        self.deadline_s=deadline_s
         self.requests = {}
         self.lock = threading.RLock()
 
@@ -44,12 +45,12 @@ class DeadlineLedger:
             self.requests[key]['finish'] = timestamp
 
     def window(self, lo, hi, observed, experts=None):
-        if observed < hi + DEADLINE_S:
+        if observed < hi + self.deadline_s:
             raise ValueError('deadlines have not matured')
         with self.lock:
             rows = [dict(x) for x in self.requests.values() if lo <= x['release'] < hi and (experts is None or x['expert'] in experts)]
         latencies = [(x['finish']-x['release']) if x['finish'] is not None else math.inf for x in rows]
-        misses = sum(v > DEADLINE_S for v in latencies)
+        misses = sum(v > self.deadline_s for v in latencies)
         p99 = percentile(latencies)
         return dict(requests=len(rows), timeouts=misses,
                     timeout_rate=misses/len(rows) if rows else None,

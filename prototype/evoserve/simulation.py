@@ -18,7 +18,8 @@ class ObservationRenderer:
 
 class AsyncRenderer:
     """Single independent OSMesa context, latest-state mailbox, tagged frames."""
-    def __init__(self, bddl):
+    def __init__(self, bddl, scene=None):
+        self.scene=scene
         self.bddl=bddl;self.jobs=queue.Queue(maxsize=1);self.latest=None;self.error=None
         self.stop=threading.Event();self.lock=threading.Lock()
         self.thread=threading.Thread(target=self.run,daemon=True);self.thread.start()
@@ -39,7 +40,11 @@ class AsyncRenderer:
         try:
             from libero.libero.envs import OffScreenRenderEnv
             env=OffScreenRenderEnv(bddl_file_name=self.bddl,camera_heights=256,camera_widths=256,hard_reset=False)
-            env.reset();renderer=ObservationRenderer(env)
+            env.reset()
+            if self.scene and self.scene['kind'] in ('camera_orbit','table_texture'):
+                from scene_perturb import apply_scene
+                apply_scene(env,self.scene)
+            renderer=ObservationRenderer(env)
             while not self.stop.is_set():
                 try:episode,frame,state,captured=self.jobs.get(timeout=.1)
                 except queue.Empty:continue

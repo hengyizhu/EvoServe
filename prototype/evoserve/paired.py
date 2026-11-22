@@ -40,11 +40,14 @@ class PairedScheduler(Scheduler):
         if not t:
             return super().begin_episode(expert, robot, episode)
         arm = "candidate" if robot in t["candidate_robots"] else "production"
+        if len(e.robots)==1:
+            arm=min(t["assigned"],key=t["assigned"].get)
         i = t["assigned"][arm]
         if i >= t["limit"] or e.pending_decision:
             return None
         version = super().begin_episode(expert, robot, episode)
-        e.active_episodes[episode].update(
+        version=e.candidate if arm=="candidate" else e.production
+        e.active_episodes[episode].update(version=version,
             pair=i, arm=arm, state=t["states"][i], seed=t["seed"] + i
         )
         t["assigned"][arm] += 1

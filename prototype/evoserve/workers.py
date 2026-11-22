@@ -30,9 +30,17 @@ def serve(cfg):
         source=out/'operator_export';source.mkdir(exist_ok=True)
         operator_export=Export(source,(*model.prefix,model.static.state))
     exporter=Export(out,model.prefix) if cfg['export_cache'] else None
+    queue_lock=threading.Lock();waiting=0
     requests=queue.Queue();running=True;ident=0;deferred=None
     def handle(msg):
-        msg['_enqueued_ns']=time.monotonic_ns();reply={};done=threading.Event();requests.put((msg,reply,done));done.wait()
+        nonlocal waiting
+        msg['_enqueued_ns']=time.monotonic_ns();reply={};done=threading.Event()
+        with queue_lock:
+            if cfg.get('queue_guard') and msg['op']=='infer':
+                if not waiting:(out/'queued').touch()
+                waiting+=1
+            requests.put((msg,reply,done))
+        done.wait()
         if 'error' in reply:raise RuntimeError(reply['error'])
         return reply['value']
     rpc=RPCServer(cfg['socket'],handle)
@@ -43,12 +51,16 @@ def serve(cfg):
             try:
                 if first[0]['op']=='infer':
                     items,deferred=collect_batch(first,requests,maximum,wait_ms)
+                    if cfg.get('queue_guard'):
+                        with queue_lock:
+                            waiting-=len(items)
+                            if waiting==0:(out/'queued').unlink(missing_ok=True)
                     messages=[x[0] for x in items];refs={};early_records={};batch_started=time.monotonic_ns()
                     def early_prefix(prefix,state,ready):
                         nonlocal operator_ident
                         for i,msg in enumerate(messages):
                             if not msg.get('operator'):continue
-                            record=dict(id=operator_ident,expert=msg['expert'],seed=msg['seed'],request_id=msg['request_id'],episode=msg['episode'],frame=msg['frame'],version=msg['version'],deadline=msg.get('release',time.monotonic())+.25)
+                            record=dict(id=operator_ident,expert=msg['expert'],seed=msg['seed'],request_id=msg['request_id'],episode=msg['episode'],frame=msg['frame'],version=msg['version'],deadline=msg.get('release',time.monotonic())+cfg.get('period',.25))
                             packet=(*model.map(lambda q:q[i:i+1],prefix),state[i:i+1])
                             rec=operator_export.publish(operator_ident,packet,record,ready_event=ready);save(source/'ipc'/f'{operator_ident:08d}.json',rec)
                             refs[i]=dict(path=str(Path(cfg['operator_results'])/(operator_token(str(source),operator_ident)+'.json')),request_id=msg['request_id']);early_records[i]=rec;operator_ident+=1
@@ -189,6 +201,7 @@ def train(cfg):
                 if sample:batches[eid]=[x.payload for x in sample]
                 if len(batches)>=plan.get('m',1):break
             if not batches:stop.wait(.01);continue
+            if cfg.get('queue_guard') and any((p/'queued').exists() for p in sources):stop.wait(.001);continue
             row=model.step(batches,recompute=cfg['mode']=='recompute');append(out/'steps.jsonl',row)
             status.update(updates=status['updates']+1,expert_steps={str(e):model.experts[e]['step'] for e in cfg['experts']},pool_samples=len(pool.items),pool_bytes=pool.bytes)
             save(out/'status.json',dict(status,**counters))

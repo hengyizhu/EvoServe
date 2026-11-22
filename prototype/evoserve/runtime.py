@@ -30,16 +30,18 @@ class Run:
     def __init__(self,cfg,out):
         self.cfg=cfg;self.operator_gpu=cfg.get('operator_gpu');self.used_gpus=sorted(set(cfg['gpus']+([] if self.operator_gpu is None else [self.operator_gpu])));self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False)
         self.closed=False;self.children=[];self.mps=[];self.stop=threading.Event();self.origin=None;self.deadline=None
-        self.ledger=DeadlineLedger();self.episodes=[];self.takeovers=[];self.sample_sources=defaultdict(int);self.event_cursor=0;self.error=None
+        self.period=cfg.get('request_period_s',.25);self.ledger=DeadlineLedger(self.period);self.episodes=[];self.takeovers=[];self.sample_sources=defaultdict(int);self.event_cursor=0;self.error=None
         self.lock=threading.RLock();self.production_paths={};self.candidate_counter=defaultdict(int)
-        self.service={};self.trainer={};self.service_out={};self.plans={};self.expert_server={};self.expert_trainer={}
+        self.pending_activation={};self.service={};self.trainer={};self.service_out={};self.plans={};self.expert_server={};self.expert_trainer={}
         self.pool_sample_counter=defaultdict(int);self.seen_change=set();self.corpus={};self.corpus_count=defaultdict(int)
         self.learning=cfg['method']!='no_learning' and not cfg.get('capacity_only',False)
         self.export=cfg.get('export_cache',cfg['method'] not in ['recompute','no_learning'])
         prior=read(cfg['prior']);self.prior=LearningPrior(prior['points'],prior['default_amplitude'])
         robots=defaultdict(list)
         for i,e in enumerate(cfg['robot_experts']):robots[e].append(i)
-        self.scheduler=Scheduler([ExpertState(e,robots[e],f'{e}:v0') for e in cfg['expert_ids']],self.prior)
+        from .paired import PairedScheduler
+        schedule=PairedScheduler if cfg.get('paired') else Scheduler
+        self.scheduler=schedule([ExpertState(e,robots[e],f'{e}:v0') for e in cfg['expert_ids']],self.prior)
         self.sockets=Path('/tmp')/('ep_'+hashlib.sha256(str(self.out).encode()).hexdigest()[:12]);self.sockets.mkdir(mode=0o700)
         save(self.out/'protocol.json',cfg)
         before=gpu_status();save(self.out/'hardware_before.json',before)
@@ -92,7 +94,7 @@ class Run:
         for g,experts in gpu_experts.items():
             out=self.out/f'serve{g}';out.mkdir();self.service_out[g]=out;address=self.sockets/f's{g}'
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),experts=experts,export_cache=self.export,cpus=list(range(g*8,g*8+4)))
-            c.update(batch_sizes=cfg.get('batch_sizes',[1]),batch_wait_ms=cfg.get('batch_wait_ms',0))
+            c.update(queue_guard=cfg.get('feedforward',False),period=self.period,batch_sizes=cfg.get('batch_sizes',[1]),batch_wait_ms=cfg.get('batch_wait_ms',0))
             c['operators']={str(e):cfg.get('operators',{})[str(e)] for e in experts if str(e) in cfg.get('operators',{})}
             if self.operator_gpu is not None:c['operator_results']=str(self.operator_out/'results')
             self.spawn('evoserve.workers',c,f'serve{g}',environments[g]);self.service[g]=RPCClient(address)
@@ -100,6 +102,7 @@ class Run:
             out=self.out/f'train{g}';out.mkdir();address=self.sockets/f't{g}';plan=self.out/f'train_plan{g}.json';self.plans[g]=plan
             save(plan,dict(experts=[],m=1,duty=0))
             c=dict(assets=cfg['assets'],out=str(out),socket=str(address),plan=str(plan),experts=experts,service_outs=[str(self.service_out[self.expert_server[e]]) for e in experts],cpus=list(range(g*8+4,g*8+8)),mode=cfg['method'],seed=cfg['seed'],pool_samples=512,pool_bytes=12*1024**3)
+            c['queue_guard']=cfg.get('feedforward',False)
             c['service_outs']=list(dict.fromkeys(c['service_outs']))
             if not self.learning:c['worker_kind']='sink'
             self.spawn('evoserve.workers',c,f'train{g}',environments[g]);self.trainer[g]=RPCClient(address)
@@ -113,7 +116,7 @@ class Run:
         self.rpc=RPCServer(self.sockets/'coord',self.handle)
         for robot,e in enumerate([] if cfg.get('replay_source') else cfg['robot_experts']):
             out=self.out/f'robot{robot}';out.mkdir()
-            c=dict(out=str(out),coordinator=str(self.sockets/'coord'),server=str(self.sockets/f's{self.expert_server[e]}'),expert=e,task_id=e,robot=robot,seed=cfg['seed'],control_hz=20,action_budget=cfg['action_budget'],cpus=[16+2*robot,17+2*robot],phase_s=.25*robot/len(cfg['robot_experts']))
+            c=dict(out=str(out),coordinator=str(self.sockets/'coord'),server=str(self.sockets/f's{self.expert_server[e]}'),expert=e,task_id=cfg.get('operators',{}).get(str(e),{}).get('task_id',e),robot=robot,seed=cfg['seed'],control_hz=20,action_budget=cfg['action_budget'],cpus=[16+2*robot,17+2*robot],hg=cfg.get('hg',False),scene=next((x['perturb'] for x in cfg['changes'] if x['expert']==e and x['at_s']==0),None),period=self.period,phase_s=self.period*robot/len(cfg['robot_experts']))
             c['operator_enabled']=str(e) in cfg.get('operators',{});c['stagnation_distance_m']=cfg.get('stagnation_distance_m',.002)
             env=self.base_env();env.update(CUDA_VISIBLE_DEVICES='',MUJOCO_GL='osmesa',PYOPENGL_PLATFORM='osmesa',LIBERO_CONFIG_PATH=str(Path(cfg['assets'])/'libero_config'),LP_NUM_THREADS='1',GALLIUM_DRIVER='llvmpipe',LD_LIBRARY_PATH=cfg['osmesa_lib']+':'+env.get('LD_LIBRARY_PATH',''))
             self.spawn('evoserve.robot',c,f'robot{robot}',env)
@@ -131,7 +134,11 @@ class Run:
                 if self.stop.is_set() or (self.deadline and time.monotonic()>=self.deadline):return dict(stop=True)
                 if self.origin is None or time.monotonic()<self.origin:return dict(wait=True,origin=self.origin)
                 version=self.scheduler.begin_episode(e,msg['robot'],msg['episode'])
-                return dict(wait=version is None,version=version,production_version=self.scheduler.experts[e].production,epoch=self.scheduler.experts[e].epoch,origin=self.origin,end=self.deadline)
+                pair=self.scheduler.experts[e].active_episodes.get(msg['episode'],{})
+                if version and self.pending_activation.get(e)==version:
+                    append(self.out/'activations.jsonl',dict(expert=e,version=version,episode=msg['episode'],robot=msg['robot'],activation_time=time.monotonic()))
+                    self.pending_activation.pop(e)
+                return dict(wait=version is None,state=pair.get('state'),seed=pair.get('seed'),version=version,production_version=self.scheduler.experts[e].production,epoch=self.scheduler.experts[e].epoch,origin=self.origin,end=self.deadline)
         if op=='environment':
             return dict(stop=self.stop.is_set() or time.monotonic()>=self.deadline,epoch=self.scheduler.experts[e].epoch,perturb=self.perturbation(e))
         if op=='arrive':
@@ -160,7 +167,7 @@ class Run:
             return True
         if op=='end_episode':
             with self.lock:
-                event=self.scheduler.end_episode(e,msg['episode'],msg.get('autonomous_success',msg['success']));row={k:v for k,v in msg.items() if k!='op'};self.episodes.append(row);append(self.out/'episodes.jsonl',row)
+                event=(self.scheduler.end_scored_episode(e,msg['episode'],msg['autonomous_success'],msg['takeover_frames'],msg['steps']) if hasattr(self.scheduler,'end_scored_episode') else self.scheduler.end_episode(e,msg['episode'],msg.get('autonomous_success',msg['success'])));row={k:v for k,v in msg.items() if k!='op'};self.episodes.append(row);append(self.out/'episodes.jsonl',row)
                 if event:self.apply_decision(event)
             return True
         raise ValueError(op)
@@ -175,6 +182,7 @@ class Run:
     def apply_decision(self,event):
         e=event['expert'];state=self.scheduler.experts[e]
         if event['decision']=='promote':
+            self.pending_activation[e]=state.production
             self.production_paths[e]=self.version_paths[event['candidate_version']]
             self.service[self.expert_server[e]].call('remove',expert=e,version=event['old_version'])
             self.trainer[self.expert_trainer[e]].call('resume',expert=e,version=state.production)
@@ -182,7 +190,7 @@ class Run:
             self.service[self.expert_server[e]].call('remove',expert=e,version=event['candidate_version'])
             self.trainer[self.expert_trainer[e]].call('resume',expert=e,version=state.production,discard=True,production_path=self.production_paths.get(e))
             state.production_step=state.step
-        append(self.out/'validation_results.jsonl',event)
+        append(self.out/'validation_results.jsonl',dict(event,decision_time=time.monotonic()))
 
     def refresh_training(self):
         if not self.learning:return
@@ -215,6 +223,10 @@ class Run:
         self.version_paths={};self.ranking=list(self.cfg['expert_ids']);self.start();window=0;next_decision=self.origin;next_status=self.origin
         try:
             while time.monotonic()<self.deadline:
+                if (self.out/'stop_requested').exists():
+                    self.deadline=time.monotonic()
+                    self.cfg['seconds']=max(1,math.ceil(self.deadline-self.origin))
+                    break
                 for p in self.children:
                     if p.poll() is not None:raise RuntimeError(f'worker {p.pid} exited {p.returncode}')
                 now=time.monotonic()
@@ -227,21 +239,34 @@ class Run:
                     self.refresh_training();next_status=now+1
                     save(self.out/'status.json',dict(state='running',elapsed_s=now-self.origin,episodes=len(self.episodes),successes=sum(x['success'] for x in self.episodes),expert_steps={str(e):s.step for e,s in self.scheduler.experts.items()},accepted_windows=dict(self.pool_sample_counter)))
                 if now>=next_decision:self.decide();next_decision+=30
-                while now>=self.origin+(window+1)*5+.25:
+                while now>=self.origin+(window+1)*5+self.period:
                     lo=self.origin+window*5;hi=lo+5
                     for gpu,controller in self.controllers.items():
                         es=[e for e in self.cfg['expert_ids'] if self.expert_trainer[e]==gpu]
-                        stat=self.ledger.window(lo,hi,now,es);change=controller.update(stat)
+                        stat=self.ledger.window(lo,hi,now,es)
+                        if self.cfg.get('feedforward'):
+                            rate=stat['requests']/5
+                            load=rate*self.cfg['service_ms']/1000
+                            safe=next((m for bound,m in self.cfg['safe_table'] if load<=bound),1)
+                            before=dict(m=controller.m,duty=controller.duty)
+                            controller.m=min(len(es),safe)
+                            if stat['timeout_rate'] is not None:
+                                controller.duty=max(0,min(1,controller.duty-5*(stat['timeout_rate']-.01)))
+                            change=dict(before=before,after=dict(m=controller.m,duty=controller.duty),measured_load=load)
+                        else:change=controller.update(stat)
                         append(self.out/'controller.jsonl',dict(window=window,gpu=gpu,**stat,**change))
                     append(self.out/'slo_windows.jsonl',dict(window=window,**self.ledger.window(lo,hi,now)))
                     self.write_plans();window+=1
+                    if window%60==0 and self.cfg.get('system_metrics'):
+                        from .system_metrics import record
+                        record(self,hi)
                 if len(self.scheduler.events)>self.event_cursor:
                     with self.lock:
                         for event in self.scheduler.events[self.event_cursor:]:append(self.out/'events.jsonl',event)
                         self.event_cursor=len(self.scheduler.events)
                 time.sleep(.01)
             # No new requests; allow the final deadline to mature.
-            time.sleep(.3);return self.summarize()
+            time.sleep(self.period+.05);return self.summarize()
         finally:self.close()
 
     def summarize(self):
@@ -257,7 +282,7 @@ class Run:
             dispatches=[json.loads(x) for x in (path/'dispatches.jsonl').read_text().splitlines()] if (path/'dispatches.jsonl').exists() else []
             sent=sum(self.origin<=x['release']<self.deadline and x['dispatched']<self.deadline for x in dispatches)
             # Nominal periods absent during reset/barriers remain deadline misses.
-            robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles),stale_observation_cycles=sum(x.get('observation_stale',False) for x in cycles),request_period_s=.25)
+            robot_stats[str(i)]=dict(sent_requests=sent,actual_request_rate=sent/self.cfg['seconds'],simulation_overrun_cycles=sum(x['simulation_overrun'] for x in cycles),stale_observation_cycles=sum(x.get('observation_stale',False) for x in cycles),request_period_s=self.period)
             reset_path=self.out/f'robot{i}/resets.jsonl'
             resets=[json.loads(x) for x in reset_path.read_text().splitlines()] if reset_path.exists() else []
             reset_seconds=sum(max(0,min(x.get('reset_completed',x['ready']),self.deadline)-max(x['reset_started'],self.origin)) for x in resets)
@@ -282,7 +307,7 @@ class Run:
         for e in self.cfg['expert_ids']:
             for begin in range(0,self.cfg['seconds'],3600):
                 end=min(self.cfg['seconds'],begin+3600);count=sum(x['expert']==e and self.origin+begin<=x['time']<self.origin+end for x in self.takeovers)
-                jobs=[x for x in operator_rows if x['expert']==e and self.origin+begin<=x['deadline']-.25<self.origin+end]
+                jobs=[x for x in operator_rows if x['expert']==e and self.origin+begin<=x['deadline']-self.period<self.origin+end]
                 exports=[x for x in serving_rows if x['expert']==e and self.origin+begin<=x['finish_ns']/1e9<self.origin+end and x.get('operator_requested')]
                 operator_hourly.append(dict(operator_export_d2h_seconds=sum(x.get('operator_export_d2h_ms',0) for x in exports)/1000,operator_export_host_seconds=sum(x.get('operator_export_host_copy_ms',0) for x in exports)/1000,expert=e,begin_s=begin,end_s=end,takeovers=count,takeovers_per_hour=count*3600/(end-begin),operator_gpu=self.operator_gpu,operator_requests=len(jobs),operator_gpu_seconds=sum(x.get('operator_gpu_ms',0)+x.get('operator_h2d_ms',0) for x in jobs)/1000,operator_h2d_seconds=sum(x.get('operator_h2d_ms',0) for x in jobs)/1000,operator_late_or_dropped=sum(x['status']!='complete' or x['finished']>x['deadline'] for x in jobs)))
         with (self.out/'operator_hourly.csv').open('w') as f:

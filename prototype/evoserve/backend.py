@@ -133,7 +133,7 @@ class GraphModel(Model):
         for expert,record in operators.items():
             expert=int(expert)
             if sha256(record['checkpoint'])!=record['sha256']:raise ValueError('Operator checksum changed')
-            delta,_=load_operator(record['checkpoint'],self.pairs,expert)
+            delta,_=load_operator(record['checkpoint'],self.pairs,record.get('task_id',expert))
             self.operator_slots[expert]={n:q.to(device='cuda',dtype=self.pairs[n].dtype) for n,q in delta.items()}
         self.operator_noise=t.randn((1,10,32),device='cuda');self.operator_graph=t.cuda.CUDAGraph()
         self.operator_events=[t.cuda.Event(enable_timing=True,external=True) for _ in range(2)]

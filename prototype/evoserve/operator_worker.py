@@ -46,7 +46,10 @@ def run(cfg):
             result(rec,'complete',started=started,actions=actions.tolist(),**timing)
             if time.monotonic()-last_cleanup>10:
                 for p in results.glob('*.json'):
-                    if time.time()-p.stat().st_mtime>30:p.unlink(missing_ok=True)
+                    try:
+                        if time.time()-p.stat().st_mtime>30:p.unlink(missing_ok=True)
+                    except FileNotFoundError:
+                        pass  # The robot consumed its completed result.
                 last_cleanup=time.monotonic()
         if errors:raise RuntimeError(errors[-1])
     finally:stop.set();receiver.join(timeout=5)
