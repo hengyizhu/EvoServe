@@ -57,7 +57,7 @@ class Server(GraphModel):
             self.stream.synchronize()
             graph = torch.cuda.CUDAGraph()
             with (
-                torch.cuda.graph(graph, stream=self.stream, pool=self.graph.pool()),
+                torch.cuda.graph(graph, stream=self.stream),
                 torch.inference_mode(),
             ):
                 result = self.work()
