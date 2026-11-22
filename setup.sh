@@ -5,6 +5,19 @@ root=${SUITE_HOME:-"$PWD/.h100"}
 mkdir -p "$root"
 nvidia-smi -L
 command -v nvidia-cuda-mps-control >/dev/null || { echo 'CUDA MPS executable missing: MPS cases will report failure.' >&2; }
+# Probe the control plane in a private namespace. The co-run also checks both CUDA clients.
+if command -v nvidia-cuda-mps-control >/dev/null; then
+    (
+        mps_probe=$(mktemp -d)
+        mkdir "$mps_probe/pipe" "$mps_probe/log"
+        export CUDA_MPS_PIPE_DIRECTORY="$mps_probe/pipe" CUDA_MPS_LOG_DIRECTORY="$mps_probe/log"
+        trap 'rm -rf -- "$mps_probe"' EXIT
+        nvidia-cuda-mps-control -d || exit 1
+        trap 'echo quit | timeout 15 nvidia-cuda-mps-control >/dev/null; rm -rf -- "$mps_probe"' EXIT
+        echo get_server_list | timeout 15 nvidia-cuda-mps-control >/dev/null || exit 1
+        echo 'Private MPS control daemon responded.'
+    ) || echo 'MPS control probe failed; individual MPS cases will retry and report their status.' >&2
+fi
 if [[ -z "${SUITE_PYTHON:-}" ]]; then
     if [[ $(id -u) == 0 ]]; then
         apt-get update -qq
