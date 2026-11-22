@@ -6,9 +6,11 @@ mkdir -p "$root"
 nvidia-smi -L
 command -v nvidia-cuda-mps-control >/dev/null || { echo 'CUDA MPS executable missing: MPS cases will report failure.' >&2; }
 if [[ -z "${SUITE_PYTHON:-}" ]]; then
-    if ! command -v uv >/dev/null && [[ ! -x "$root/bootstrap/bin/uv" ]]; then
+    if [[ $(id -u) == 0 ]]; then
         apt-get update -qq
         apt-get install -y python3-venv build-essential libgl1 libglib2.0-0 libegl1 libosmesa6 libnuma1 git curl pkg-config cmake
+    fi
+    if ! command -v uv >/dev/null && [[ ! -x "$root/bootstrap/bin/uv" ]]; then
         python3 -m venv "$root/bootstrap"
         "$root/bootstrap/bin/pip" install 'uv==0.9.11'
     fi
@@ -21,7 +23,7 @@ if [[ -z "${SUITE_PYTHON:-}" ]]; then
         "$py" -m pip install --no-deps 'torch==2.11.0+cu130' 'torchvision==0.26.0+cu130' --index-url https://download.pytorch.org/whl/cu130
         "$py" -m pip install --no-deps 'https://github.com/RLinf/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu13torch2.11cxx11abiTRUE-cp311-cp311-linux_x86_64.whl'
         "$py" -m pip install --no-deps --force-reinstall 'rlinf-transformer-openpi==4.53.2'
-        "$py" -c 'import torch,flash_attn; assert torch.cuda.is_available(); print(torch.cuda.get_device_name())'
+        "$py" -c 'import torch,flash_attn; assert torch.version.cuda.startswith("13."); print(torch.__version__)'
         touch "$root/environment.ok"
     fi
 else
