@@ -11,6 +11,8 @@ import sys
 import tarfile
 import tempfile
 import traceback
+import time
+from external_load import ExternalLoad
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,6 +61,8 @@ def main():
         pins=command([sys.executable, "-m", "pip", "freeze"]),
     )
     (out / "hardware.json").write_text(json.dumps(metadata, indent=2))
+    monitor = ExternalLoad(out)
+    external = {}
     rows = {}
     results = {}
 
@@ -68,8 +72,8 @@ def main():
             "",
             metadata["gpu"],
             "",
-            "| Case | Status | Measurements |",
-            "|---|---|---|",
+            "| Case | Status | Measurements | External GPU load |",
+            "|---|---|---|---|",
         ]
         for name, status in rows.items():
             r = results.get(name, {})
@@ -79,7 +83,7 @@ def main():
                 if k not in ("samples_ms", "tested", "seconds")
             }
             text.append(
-                f"| {name} | {status} | {json.dumps(visible, ensure_ascii=False)} |"
+                f"| {name} | {status} | {json.dumps(visible, ensure_ascii=False)} | {external.get(name, chr(8212))} |"
             )
         atomic(out / "summary.md", "\n".join(text) + "\n")
         atomic(out / "index.json", json.dumps(rows, indent=2))
@@ -91,6 +95,7 @@ def main():
             return {}
         for i in (1, 2):
             d = out / name / f"attempt-{i}"
+            attempt_start = time.time()
             d.mkdir(parents=True)
             config = dict(kind=kind, out=str(d), **opts)
             (d / "case.json").write_text(json.dumps(config))
@@ -152,10 +157,12 @@ def main():
                                 timeout=20,
                             )
                 results[name] = json.loads((d / "result.json").read_text())
+                external[name] = monitor.summary(attempt_start)
                 rows[name] = "passed"
                 break
             except Exception:
                 (d / "error.txt").write_text(traceback.format_exc())
+                external[name] = monitor.summary(attempt_start)
                 rows[name] = f"failed attempt {i}"
         refresh()
         return results.get(name, {})
@@ -257,6 +264,7 @@ def main():
         load(f"05-rebuild-{l}", mode="rebuild", loads=[l], seconds=180)
     for mode, n in [("cache", 1), ("cache", 8), ("recompute", 1), ("visual", 1)]:
         case(f"06-kernel-{mode}-{n}", "profile", mode=mode, experts=n)
+    monitor.close()
     archive = out.with_name(out.name + ".tar.gz")
     with tarfile.open(archive, "w:gz") as tar:
         tar.add(out, arcname=out.name)
