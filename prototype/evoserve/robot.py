@@ -129,7 +129,7 @@ def run(cfg):
                     state=coord.call('environment',expert=cfg['expert'])
                     if state['stop']:stopped=True;break
                     rid=request_key(cfg['robot'],next_release);view=renderer.get(episode)
-                    if cfg.get('hg'):
+                    if cfg.get('hg') and PERIOD>.25:
                         # Prefer a frame at this actual action boundary for aligned online labels.
                         frame=len(assembler.actions)
                         # The preceding physics tick already submitted this state.
@@ -163,7 +163,7 @@ def run(cfg):
                         coord.call('takeover',**takeover_event);append(out/'takeovers.jsonl',takeover_event)
                         coord.call('drop',expert=cfg['expert'],refs=[x['cache_ref'] for x in reservoir]);reservoir.clear();eligible=0
                 next_tick=episode_time+(tick+1)/control_hz
-                render_due=(next_tick+1e-7>=next_release) if cfg.get('hg') else (tick%5==1)
+                render_due=(next_tick+1e-7>=next_release) if cfg.get('hg') and PERIOD>.25 else (tick%5==1)
                 if render_due:
                     renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
                 tick+=1
