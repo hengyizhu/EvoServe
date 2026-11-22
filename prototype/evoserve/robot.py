@@ -130,8 +130,9 @@ def run(cfg):
                     rid=request_key(cfg['robot'],next_release);view=renderer.get(episode)
                     if cfg.get('hg'):
                         # Prefer a frame at this actual action boundary for aligned online labels.
-                        frame=len(assembler.actions);renderer.submit(episode,frame,env.get_sim_state().copy())
-                        until=min(next_release+PERIOD,time.monotonic()+.04)
+                        frame=len(assembler.actions)
+                        # The preceding physics tick already submitted this state.
+                        until=next_release+min(.16,PERIOD/3)
                         while time.monotonic()<until and (view is None or view['frame']!=frame):
                             time.sleep(.0005);view=renderer.get(episode)
                     raw=raw_observation(view,state.get('perturb')) if view else None
@@ -160,7 +161,9 @@ def run(cfg):
                         takeover_event=dict(**trigger,episode=episode,expert=cfg['expert'],robot=cfg['robot'],frame=len(assembler.actions),time=time.monotonic(),episode_version=version,production_version=production_version)
                         coord.call('takeover',**takeover_event);append(out/'takeovers.jsonl',takeover_event)
                         coord.call('drop',expert=cfg['expert'],refs=[x['cache_ref'] for x in reservoir]);reservoir.clear();eligible=0
-                if tick%5==1:renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
+                next_tick=episode_time+(tick+1)/20
+                if (cfg.get('hg') and next_tick+1e-7>=next_release) or tick%5==1:
+                    renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())
                 tick+=1
                 if time.monotonic()-last_report>=5:
                     save(out/'status.json',dict(requests_total=requests_total,requests_sent=requests_sent,simulation_overrun_cycles=sim_misses,hold_ticks=holds,wall_elapsed_s=time.monotonic()-origin,actual_request_rate=requests_sent/max(1e-6,time.monotonic()-origin)))
