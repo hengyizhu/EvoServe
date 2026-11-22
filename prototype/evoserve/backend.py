@@ -18,7 +18,7 @@ def bootstrap(assets, threads):
     os.environ.setdefault('LIBERO_CONFIG_PATH',str(assets/'libero_config'))
     os.environ.setdefault('JAX_PLATFORMS','cpu')
     import torch
-    torch.set_num_threads(threads)
+    torch.set_num_threads(int(os.environ.get("EVOSERVE_CPU_THREADS", threads)))
     return repo,assets,torch
 
 

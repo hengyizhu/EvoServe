@@ -53,9 +53,10 @@ class Load:
         }
         self.errors = ctx.Queue()
         self.job = None
+        use_mps = mode == "cache" and os.environ.get("EVOSERVE_TRANSPORT") == "mps"
         if mode:
             ready = ctx.Event()
-            cls = ctx.Process if mode == "cache" else threading.Thread
+            cls = ctx.Process if use_mps else threading.Thread
             self.job = cls(
                 target=worker,
                 args=(mode, rank, maximum, self.shared, ready, self.errors),
@@ -67,7 +68,7 @@ class Load:
             self.check()
         self.mode = mode
 
-        if mode == "cache":
+        if use_mps:
 
             def control(cmd):
                 return subprocess.run(

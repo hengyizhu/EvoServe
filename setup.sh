@@ -3,8 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")"
 root=${SUITE_HOME:-"$PWD/.h100"}
 mkdir -p "$root"
+driver=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader -i 0)
+major=${driver%%.*}
+if (( major >= 580 )); then flavor=cu130; abi=13
+elif (( major >= 525 )); then flavor=cu128; abi=12
+else echo "Unsupported driver $driver for CUDA 12/13" >&2; exit 1
+fi
+transport=streams
 nvidia-smi -L
-command -v nvidia-cuda-mps-control >/dev/null || { echo 'CUDA MPS executable missing: MPS cases will report failure.' >&2; }
+command -v nvidia-cuda-mps-control >/dev/null || { echo 'CUDA MPS executable missing: using priority streams.' >&2; }
 # Probe the control plane in a private namespace. The co-run also checks both CUDA clients.
 if command -v nvidia-cuda-mps-control >/dev/null; then
     (
@@ -16,7 +23,7 @@ if command -v nvidia-cuda-mps-control >/dev/null; then
         trap 'echo quit | timeout 15 nvidia-cuda-mps-control >/dev/null; rm -rf -- "$mps_probe"' EXIT
         echo get_server_list | timeout 15 nvidia-cuda-mps-control >/dev/null || exit 1
         echo 'Private MPS control daemon responded.'
-    ) || echo 'MPS control probe failed; individual MPS cases will retry and report their status.' >&2
+    ) && transport=mps || echo 'MPS probe failed; using priority streams' >&2
 fi
 if [[ -z "${SUITE_PYTHON:-}" ]]; then
     if [[ $(id -u) == 0 ]]; then
@@ -31,13 +38,17 @@ if [[ -z "${SUITE_PYTHON:-}" ]]; then
     "$uvbin" python install 3.11.14
     if [[ ! -x "$root/venv/bin/python" ]]; then "$uvbin" venv --seed --python 3.11.14 "$root/venv"; fi
     py="$root/venv/bin/python"
-    if [[ ! -f "$root/environment.ok" ]]; then
+    if [[ "$(cat "$root/environment.ok" 2>/dev/null || true)" != "$flavor" ]]; then
         "$py" -m pip install --no-deps -r machine_b/environment/requirements-lock.txt
-        "$py" -m pip install --no-deps 'torch==2.11.0+cu130' 'torchvision==0.26.0+cu130' --index-url https://download.pytorch.org/whl/cu130
-        "$py" -m pip install --no-deps 'https://github.com/RLinf/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu13torch2.11cxx11abiTRUE-cp311-cp311-linux_x86_64.whl'
+        if [[ $flavor == cu128 ]]; then
+            "$py" -m pip install "torch==2.11.0+$flavor" "torchvision==0.26.0+$flavor" --index-url "https://download.pytorch.org/whl/$flavor" --extra-index-url https://pypi.org/simple
+        else
+            "$py" -m pip install --no-deps "torch==2.11.0+$flavor" "torchvision==0.26.0+$flavor" --index-url "https://download.pytorch.org/whl/$flavor"
+        fi
+        "$py" -m pip install --no-deps "https://github.com/RLinf/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu${abi}torch2.11cxx11abiTRUE-cp311-cp311-linux_x86_64.whl"
         "$py" -m pip install --no-deps --force-reinstall 'rlinf-transformer-openpi==4.53.2'
-        "$py" -c 'import torch,flash_attn; assert torch.version.cuda.startswith("13."); print(torch.__version__)'
-        touch "$root/environment.ok"
+        "$py" -c 'import torch,flash_attn; print(torch.__version__)'
+        echo "$flavor" > "$root/environment.ok"
     fi
 else
     py="$SUITE_PYTHON"
@@ -48,3 +59,5 @@ if [[ ! -e "$root/assets.ok" ]]; then
     "$py" h100/assets.py "$root" "${extra[@]}"
     touch "$root/assets.ok"
 fi
+
+printf '%s\n' "$transport" > "$root/transport"

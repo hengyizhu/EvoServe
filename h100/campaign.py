@@ -63,6 +63,7 @@ def main():
     (out / "hardware.json").write_text(json.dumps(metadata, indent=2))
     monitor = ExternalLoad(out)
     external = {}
+    mps_allowed = (Path(os.environ["SUITE_HOME"])/"transport").read_text().strip()=="mps"
     rows = {}
     results = {}
 
@@ -71,6 +72,7 @@ def main():
             "# Single GPU measurements",
             "",
             metadata["gpu"],
+            "PyTorch and runtime CUDA: "+metadata["torch"]+"; inference CPU threads: 1",
             "",
             "| Case | Status | Measurements | External GPU load |",
             "|---|---|---|---|",
@@ -93,6 +95,7 @@ def main():
             rows[name] = "skipped: " + why
             refresh()
             return {}
+        nonlocal mps_allowed
         for i in (1, 2):
             d = out / name / f"attempt-{i}"
             attempt_start = time.time()
@@ -100,7 +103,8 @@ def main():
             config = dict(kind=kind, out=str(d), **opts)
             (d / "case.json").write_text(json.dumps(config))
             env = dict(os.environ)
-            mps = kind in ("corun", "capacity_corun") and opts.get("mode") == "cache"
+            mps = mps_allowed and kind in ("corun", "capacity_corun") and opts.get("mode") == "cache"
+            env["EVOSERVE_TRANSPORT"]="mps" if mps else "streams"
             try:
                 with tempfile.TemporaryDirectory(prefix="evo-mps-") as pipe:
                     if mps:
@@ -157,10 +161,14 @@ def main():
                                 timeout=20,
                             )
                 results[name] = json.loads((d / "result.json").read_text())
+                if kind in ("corun","capacity_corun"):
+                    results[name]["transport"]=env["EVOSERVE_TRANSPORT"]
+                    atomic(d/"result.json",json.dumps(results[name],indent=2))
                 external[name] = monitor.summary(attempt_start)
                 rows[name] = "passed"
                 break
             except Exception:
+                if mps and i==1: mps_allowed=False
                 (d / "error.txt").write_text(traceback.format_exc())
                 external[name] = monitor.summary(attempt_start)
                 rows[name] = f"failed attempt {i}"
