@@ -1,4 +1,4 @@
-"""Fixed 250ms arrivals and 20Hz physics. No inference-dependent pacing."""
+"""Wall-clock request and control schedules advance independently of inference."""
 from pathlib import Path
 import os,random,sys,time,traceback,queue,threading
 from concurrent.futures import ThreadPoolExecutor
@@ -10,6 +10,7 @@ PERIOD=.250
 
 def run(cfg):
     PERIOD=cfg.get("period",.25)
+    control_hz=cfg.get("control_hz",20)
     import numpy as np
     repo=Path(__file__).resolve().parents[2];sys.path.insert(0,str(repo/'vendor/RLinf'))
     sys.path.insert(0,str(repo/'experiments/pi05_machine_b_20261115'))
@@ -41,7 +42,7 @@ def run(cfg):
                 fresh=time.monotonic();renderer.submit(episode,0,env.get_sim_state().copy())
                 while renderer.get(episode)['captured']<fresh:time.sleep(.002)
             if index==0:
-                save(out/'ready.json',dict(pid=os.getpid(),renderer='independent OSMesa state',request_period_s=PERIOD,physics_hz=20,returned_actions=10,normal_actions_per_cycle=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
+                save(out/'ready.json',dict(pid=os.getpid(),renderer='independent OSMesa state',request_period_s=PERIOD,physics_hz=control_hz,returned_actions=10,normal_actions_per_cycle=5,cpu_affinity=sorted(os.sched_getaffinity(0))))
             reset_completed=time.monotonic()
             primed_origin=None
             while True:
@@ -67,7 +68,7 @@ def run(cfg):
             assembler=ActionWindowAssembler(episode,version);actions=PeriodicActions();completed=queue.Queue();futures=[];seen_frames=set();reservoir=[];rng=random.Random(seed+211);eligible=0;success=False;stopped=False;cycle=0;episode_time=next_release;tick=0;physics_cpu=0.;episode_misses=0;episode_holds=0
             deviation=threading.Event();operator_active=False;takeover_event=None;action_sources=[]
             detector=TakeoverRule(cfg.get('stagnation_distance_m',.002),time_fraction=float('inf') if cfg.get('hg') else .7)
-            detector.update(env.env._get_observations()['robot0_eef_pos'],0,cfg['action_budget']/20)
+            detector.update(env.env._get_observations()['robot0_eef_pos'],0,cfg['action_budget']/control_hz)
             def infer(cycle,release,rid,raw,frame,captured,operator_requested):
                 client=RPCClient(cfg['server']);c=RPCClient(cfg['coordinator'])
                 try:
@@ -119,7 +120,7 @@ def run(cfg):
                         coord.call('drop',expert=cfg['expert'],refs=[ref]);continue
                     seen_frames.add(frame);assembler.observe(frame,dict(raw=raw,cache_ref=ref),version=cache_version);accept_ready()
             while len(assembler.actions)<cfg['action_budget'] and not success:
-                due=episode_time+tick/20
+                due=episode_time+tick/control_hz
                 time.sleep(max(0,due-time.monotonic()))
                 if time.monotonic()>=end:stopped=True;break
                 drain()
@@ -152,7 +153,7 @@ def run(cfg):
                 append(out/'executed_actions.jsonl',dict(episode=episode,frame=len(assembler.actions)-1,source=actions.last_source,action=action.tolist()))
                 success=bool(env.check_success())
                 if cfg.get('operator_enabled') and not operator_active:
-                    trigger=detector.update(env.env._get_observations()['robot0_eef_pos'],time.monotonic()-episode_time,cfg['action_budget']/20,success)
+                    trigger=detector.update(env.env._get_observations()['robot0_eef_pos'],time.monotonic()-episode_time,cfg['action_budget']/control_hz,success)
                     if cfg.get('hg'):
                         if trigger and trigger['reason']=='time_budget_70pct':trigger=None
                         if deviation.is_set():trigger=dict(reason='deviation_2cm')
@@ -161,7 +162,7 @@ def run(cfg):
                         takeover_event=dict(**trigger,episode=episode,expert=cfg['expert'],robot=cfg['robot'],frame=len(assembler.actions),time=time.monotonic(),episode_version=version,production_version=production_version)
                         coord.call('takeover',**takeover_event);append(out/'takeovers.jsonl',takeover_event)
                         coord.call('drop',expert=cfg['expert'],refs=[x['cache_ref'] for x in reservoir]);reservoir.clear();eligible=0
-                next_tick=episode_time+(tick+1)/20
+                next_tick=episode_time+(tick+1)/control_hz
                 render_due=(next_tick+1e-7>=next_release) if cfg.get('hg') else (tick%5==1)
                 if render_due:
                     renderer.submit(episode,len(assembler.actions),env.get_sim_state().copy())

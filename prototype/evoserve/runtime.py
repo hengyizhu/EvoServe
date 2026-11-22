@@ -116,7 +116,7 @@ class Run:
         self.rpc=RPCServer(self.sockets/'coord',self.handle)
         for robot,e in enumerate([] if cfg.get('replay_source') else cfg['robot_experts']):
             out=self.out/f'robot{robot}';out.mkdir()
-            c=dict(out=str(out),coordinator=str(self.sockets/'coord'),server=str(self.sockets/f's{self.expert_server[e]}'),expert=e,task_id=cfg.get('operators',{}).get(str(e),{}).get('task_id',e),robot=robot,seed=cfg['seed'],control_hz=20,action_budget=cfg['action_budget'],cpus=[16+2*robot,17+2*robot],hg=cfg.get('hg',False),scene=next((x['perturb'] for x in cfg['changes'] if x['expert']==e and x['at_s']==0),None),period=self.period,phase_s=self.period*robot/len(cfg['robot_experts']))
+            c=dict(out=str(out),coordinator=str(self.sockets/'coord'),server=str(self.sockets/f's{self.expert_server[e]}'),expert=e,task_id=cfg.get('operators',{}).get(str(e),{}).get('task_id',e),robot=robot,seed=cfg['seed'],control_hz=cfg.get('control_hz',20),action_budget=cfg['action_budget'],cpus=[16+2*robot,17+2*robot],hg=cfg.get('hg',False),scene=next((x['perturb'] for x in cfg['changes'] if x['expert']==e and x['at_s']==0),None),period=self.period,phase_s=self.period*robot/len(cfg['robot_experts']))
             c['operator_enabled']=str(e) in cfg.get('operators',{});c['stagnation_distance_m']=cfg.get('stagnation_distance_m',.002)
             env=self.base_env();env.update(CUDA_VISIBLE_DEVICES='',MUJOCO_GL='osmesa',PYOPENGL_PLATFORM='osmesa',LIBERO_CONFIG_PATH=str(Path(cfg['assets'])/'libero_config'),LP_NUM_THREADS='1',GALLIUM_DRIVER='llvmpipe',LD_LIBRARY_PATH=cfg['osmesa_lib']+':'+env.get('LD_LIBRARY_PATH',''))
             self.spawn('evoserve.robot',c,f'robot{robot}',env)

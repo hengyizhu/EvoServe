@@ -34,7 +34,7 @@ calibration=json.loads(a.calibration.read_text())
 cfg=dict(assets=machine['assets'],osmesa_lib=machine['osmesa_lib'],prior=str(proto/'configs/learning_prior.json'),
          gpus=a.gpus,operator_gpu=max(free,key=free.get),expert_ids=ids,robot_experts=robots,
          operators=operators,method='ours',paired=True,hg=True,system_metrics=True,feedforward=True,
-         request_period_s=.25*a.k,seed=20261108,action_budget=520,
+         request_period_s=.25*a.k,control_hz=20/a.k,seed=20261108,action_budget=520,
          changes=[dict(expert=e,at_s=0,perturb=tasks[e%2]['perturb']) for e in ids],
          safe_table=calibration["table"],service_ms=calibration["service_ms"],
          seconds=a.seconds or 86400*365,batch_sizes=([1,2,4] if a.robots_per_gpu>=2 else [1]),batch_wait_ms=(10 if a.robots_per_gpu>=2 else 0))
