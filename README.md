@@ -8,6 +8,27 @@ tmux new -s evoserve
 cd /workspace
 ```
 
+## H100 机器人数量补测
+
+在上述 tmux 和 /workspace 中执行。已有 checkout 可先运行 `git switch h100-suite && git pull --ff-only`。
+
+```bash
+git clone -b h100-suite --single-branch https://github.com/hengyizhu/EvoServe.git
+cd EvoServe
+./run_supplement.sh
+```
+
+按 5、6、4 台机器人依次测量，每台 4 Hz 错峰，时限 250 ms。每档包含纯推理、纯推理加按需导出、复用前缀（1/2/4/8 个专家）和每步重算（1 个专家）。21 组各 5 分钟，正式计时合计 105 分钟；预计已装环境约 2–2.5 小时，首次安装下载再预留 30–75 分钟，重试另计。单卡短版命令为 `./run_supplement.sh --quick`，7 个配置各用 1 台机器人测量 60 秒。每个测量进程先预热并跑 2 秒短测。
+
+- 负载为固定到达回放。每台机器人每 104 次请求构成一个模拟回合（520 个控制步，每请求 5 步）。从每个完整回合均匀无放回抽取 8 次，记录截断回合在测量期内实际到达的抽样请求。复用组和纯推理加导出组采用同一随机序列。每个选中请求把自己的 KV 复制到预分配 pinned 环形缓冲区，独立 stream 等待前缀就绪事件；静态推理图下一次覆盖同一地址前等待复制完成。
+- 训练共用 r32、每专家有效 batch 8（4 × 2）、GPU 组 batch、按 dtype 打包的 pinned 主机 KV 样本库、CUDA Graph 前反向、图外 AdamW 和 EMA。复用组的样本库使用事先经服务路径算出的 KV；本轮导出的 KV 用于测量导出成本。重算组在每个 microbatch 的图内执行冻结的前缀。两组直接调用 H100 已验证损失、master 权重和 EMA 逐步一致的 graph 实现，单专家训练线程数为 1，多专家为 4；推理 CPU 线程数固定为 1。
+- 缓存组优先使用无配额 MPS，容器不可用时使用单进程优先级 streams。重算沿用推理优先的单进程 streams。每 5 秒按超过 250 ms 的请求比例调节占空比。两组均使用原 H100 QueueSlack：队首等待时间加预计 batch 服务耗时超过 200 ms 时暂停发起训练步。同档机器人数共享纯推理阶段标定的各 batch 耗时。每个配置只改变固定专家数，反馈不改变专家数。
+- 结果在 `results/supplement-日期-时间/`，同名 `.tar.gz` 可下载。逐项 JSON 记录派发与完成时间、抽样 ID、实际 transport、P99、SLO 和吞吐。`summary.csv` 为全矩阵；`feedforward.json` 按机器人数列出满足 SLO ≥99.5% 且 P99 ≤220 ms 的最大有效专家数，以及两种训练方式各自在 SLO ≥99% 下的最高实测专家步/秒。没有合格点时分别写 0 或 null。A6000 的 GPU 2/3 外部负载记录在 `external_gpu_load.csv`。
+
+GPU 0 的 RTX A6000（225 W）已完成全部 7 项单机器人预演，每项 240 次请求。8 专家缓存组和重算组的 SLO 分别为 97.08% 和 84.58%，均按实测值保留。详见 [A6000 预演汇总](results/a6000-supplement-rehearsal/summary.csv)。
+
+## 原全套测量
+
 在已配置 NVIDIA 驱动、CUDA 与 MPS 的 x86_64 Ubuntu H100 云主机上，以 root 在空目录运行以下命令。私有仓库需要有读取权限。
 
 ```bash

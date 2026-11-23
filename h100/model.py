@@ -72,7 +72,7 @@ class Server(GraphModel):
         self.records = inputs()
         self.index = 0
 
-    def serve(self, count, save_cache=False):
+    def serve(self, count, save_cache=False, export_indices=()):
         size = min(n for n in self.buckets if n >= count)
         obs, noise, events, graph, result, prefix = self.buckets[size]
         items = [
@@ -88,7 +88,12 @@ class Server(GraphModel):
                 if torch.is_tensor(dest):
                     dest.copy_(src, non_blocking=True)
             noise.normal_()
+            sparse = getattr(self, "sparse_export", None)
+            if sparse is not None:
+                sparse.before_graph(size, self.stream)
             graph.replay()
+            if export_indices:
+                sparse.submit(size, export_indices, self.leaves(prefix), events[1])
             self.model.decode_actions(result, obs.state)[:count].cpu()
             cache = (
                 self.map(lambda x: x.detach().cpu().clone(), prefix)
