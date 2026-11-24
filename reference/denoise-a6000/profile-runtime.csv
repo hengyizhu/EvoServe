@@ -1,0 +1,10 @@
+name,calls,total_us,mean_us
+cudaLaunchKernel,1787,8080.343000000002,4.5217364297705664
+cudaLaunchKernelExC,147,529.515,3.602142857142857
+cudaMemcpyAsync,56,408.71100000000007,7.2984107142857155
+cudaMemsetAsync,37,174.985,4.729324324324325
+cudaDeviceGetAttribute,326,106.80700000000004,0.32762883435582835
+cudaOccupancyMaxActiveBlocksPerMultiprocessor,56,54.87600000000001,0.9799285714285716
+cudaDeviceSynchronize,1,17.143,17.143
+cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags,2,3.016,1.508
+cudaPeekAtLastError,8,0.47200000000000003,0.059000000000000004

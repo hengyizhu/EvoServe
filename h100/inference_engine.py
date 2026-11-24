@@ -33,7 +33,9 @@ def capture(fn, stream):
 
 
 def build(engine, n, prefix_kind, suffix_kind):
-    if suffix_kind == "compile" or (prefix_kind == "compile" and n >= 4):
+    if prefix_kind != "graph":
+        raise ValueError("Only the graph prefix is supported")
+    if suffix_kind == "compile":
         # A denoising call is replayed ten times with fixed input storage. Use
         # the single-graph implementation rather than inductor's graph-tree
         # allocator, which invalidates outputs across iterative invocations.
@@ -63,20 +65,13 @@ def build(engine, n, prefix_kind, suffix_kind):
             _, mask, kv = m.build_prefix_cache(obs)
             return mask, kv
 
-        if prefix_kind == "graph":
-            pre = capture(prefix, s)
-        else:
-            pre = torch.compile(
-                prefix, mode="reduce-overhead", dynamic=False, fullgraph=True
-            )
+        pre = capture(prefix, s)
         kv_template = pre()
         # Keep a stable KV destination for downstream graph replay and async export.
         cache = engine.map(torch.empty_like, kv_template)
         del kv_template
 
         def refresh():
-            if prefix_kind == "compile":
-                torch.compiler.cudagraph_mark_step_begin()
             for dst, src in zip(
                 engine.leaves(cache), engine.leaves(pre()), strict=True
             ):
@@ -84,16 +79,15 @@ def build(engine, n, prefix_kind, suffix_kind):
 
         refresh()
         times = [torch.full((n,), 1 - j / 10, device="cuda") for j in range(10)]
-        norms = [v for v in m.modules() if hasattr(v, "ada_modulation")]
-        cond = [m.embed_suffix(obs, noise, t)[3] for t in times]
         static_inputs = list(times)
         if dummy is not None:
             static_inputs.append(constant)
         idx = [0]
-        for norm in norms:
-            module = norm.ada_modulation
-            values = tuple(module(c.to(module.weight.dtype)) for c in cond)
-            if suffix_kind == "graph":
+        if suffix_kind == "graph":
+            cond = [m.embed_suffix(obs, noise, t)[3] for t in times]
+            for norm in (v for v in m.modules() if hasattr(v, "ada_modulation")):
+                module = norm.ada_modulation
+                values = tuple(module(c.to(module.weight.dtype)) for c in cond)
                 static_inputs.extend(values)
                 stack.enter_context(
                     patch.object(module, "forward", lambda x, v=values: v[idx[0]])
@@ -125,18 +119,19 @@ def build(engine, n, prefix_kind, suffix_kind):
                     x = one(x, t)
             return x
 
-        denoise = capture(ten, s) if suffix_kind == "graph" else ten
+        if suffix_kind in ("manual", "manual-unfused"):
+            from denoise_fast import Denoiser
+
+            fast = Denoiser(m, obs, noise, cache, times)
+            static_inputs.append(fast)
+            denoise = capture(lambda: fast.ten(noise, fused=suffix_kind == "manual"), s)
+        else:
+            denoise = capture(ten, s) if suffix_kind == "graph" else ten
         out = torch.empty_like(noise)
 
-        # Compiled callables can recompile if monkey patches disappear. Keep the
-        # prefix image specialization inside the callable on each invocation.
         def run():
             events[0].record()
-            if dummy is not None and prefix_kind == "compile":
-                with patch.object(m.img, "forward", encode):
-                    refresh()
-            else:
-                refresh()
+            refresh()
             events[1].record()
             out.copy_(denoise())
             events[2].record()
@@ -151,7 +146,11 @@ class SelectedServer(Server):
         super().__init__(sizes)
         choices = json.loads(Path(plan).read_text())
         for n in sizes:
-            self.buckets[n] = build(self, n, *choices[str(n)])
+            pre, den = choices[str(n)]
+            if pre != "graph":
+                raise ValueError("This suite requires a graph prefix")
+            if den != "original":
+                self.buckets[n] = build(self, n, pre, den)
 
 
 def trial(n, pre, den, output):
@@ -211,8 +210,8 @@ def trial(n, pre, den, output):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("batch", type=int)
-    p.add_argument("prefix", choices=["graph", "compile"])
-    p.add_argument("denoise", choices=["graph", "compile"])
+    p.add_argument("prefix", choices=["graph"])
+    p.add_argument("denoise", choices=["graph", "compile", "manual", "manual-unfused"])
     p.add_argument("output")
     a = p.parse_args()
     trial(a.batch, a.prefix, a.denoise, a.output)

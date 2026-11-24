@@ -97,5 +97,235 @@
     "regressed": 8,
     "mcnemar_exact_p": 1,
     "passed": true
+  },
+  "graph-manual": {
+    "baseline": 24,
+    "optimized": 25,
+    "discordant": [
+      {
+        "episode": 7,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 9,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 12,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 14,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 16,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 19,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 20,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 21,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 29,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 31,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 32,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 33,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 34,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 38,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 40,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 41,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 42,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 46,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 49,
+        "baseline": false,
+        "optimized": true
+      }
+    ],
+    "improved": 10,
+    "regressed": 9,
+    "mcnemar_exact_p": 1,
+    "passed": true
+  },
+  "graph-compile": {
+    "baseline": 24,
+    "optimized": 23,
+    "discordant": [
+      {
+        "episode": 0,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 4,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 6,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 10,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 14,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 15,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 16,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 17,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 20,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 21,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 24,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 27,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 29,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 31,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 32,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 33,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 34,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 35,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 38,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 39,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 40,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 41,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 48,
+        "baseline": false,
+        "optimized": true
+      }
+    ],
+    "improved": 11,
+    "regressed": 12,
+    "mcnemar_exact_p": 1,
+    "passed": true
   }
 }

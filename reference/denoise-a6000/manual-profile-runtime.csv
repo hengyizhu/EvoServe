@@ -1,0 +1,8 @@
+name,calls,total_us,mean_us
+cudaLaunchKernel,112,713.125,6.3671875
+cudaMemsetAsync,20,108.547,5.42735
+cudaLaunchKernelExC,18,92.07400000000001,5.115222222222223
+cudaFuncSetAttribute,18,42.388000000000005,2.354888888888889
+cudaDeviceGetAttribute,56,28.240000000000002,0.5042857142857143
+cudaDeviceSynchronize,1,22.082,22.082
+cudaStreamIsCapturing,18,15.056,0.8364444444444444
