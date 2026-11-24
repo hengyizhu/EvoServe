@@ -1,0 +1,13 @@
+batch,prefix_impl,denoise_impl,status,baseline_prefix_ms,baseline_denoise_ms,candidate_prefix_ms,candidate_denoise_ms,max_abs_error,mean_abs_error,decision,failure
+1,graph,graph,measured,18.43660831451416,56.84163284301758,16.55022430419922,50.6232795715332,0,0.0,selected,
+1,compile,graph,failed_after_retry,,,,,,,,CUDA unspecified launch failure on both attempts
+1,graph,compile,measured,18.443120002746582,56.824031829833984,16.5534086227417,29.266992568969727,0.004549264907836914,0.00044185921130193153,ineligible,
+2,graph,graph,measured,29.670944213867188,61.17585563659668,27.26574420928955,54.31246376037598,0,0.0,selection_incomplete,
+2,compile,graph,failed_after_retry,,,,,,,,First process exited without a result; retry exited on SIGSEGV (signal 11)
+2,graph,compile,interrupted_before_measurement,,,,,,,,
+4,graph,graph,not_started,,,,,,,,
+4,compile,graph,not_started,,,,,,,,
+4,graph,compile,not_started,,,,,,,,
+8,graph,graph,not_started,,,,,,,,
+8,compile,graph,not_started,,,,,,,,
+8,graph,compile,not_started,,,,,,,,
