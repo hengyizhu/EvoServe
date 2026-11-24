@@ -61,3 +61,4 @@ work/
 /.h100/
 /results/h100-*/
 /results/h100-*.tar.gz
+/results/inference-opt-*/

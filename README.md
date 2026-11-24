@@ -8,6 +8,12 @@ tmux new -s evoserve
 cd /workspace
 ```
 
+## 分阶段推理优化与共跑
+
+在已挂载的 `/workspace` 和 tmux 中运行 `./run_inference_opt.sh`。入口在当前 GPU 上为 batch 1、2、4、8 分别标定前缀和十步去噪，使用相同观测与相同噪声同原整图路径对照。每组 12 个输入批次，前两个批次只用于数值校验，后十个批次同时记录 GPU Event 耗时。分别尝试分阶段 CUDA Graph 与 `torch.compile(mode="reduce-overhead")`。两条入选候选路径均使用 CUDA Graph 去噪。CUDA Graph 前缀要求归一化动作最大绝对误差 ≤0.001；编译前缀报告平均及最大绝对误差。两条路径均须通过 A6000 低照度 50 回合配对验证（成功数相差 ≤4 且双侧精确 McNemar p >0.05）。H100 读取随仓库发布的 reference/inference-behavior.json，并在本卡每档 batch 实测可运行的合格实现中选择耗时最低者；selection.json 记录筛选过程。固定 LIBERO 父模型的图路径复用空白相机的视觉编码和十个固定去噪时刻的 AdaRMS 调制向量。更换权重须重新构建推理图。
+
+默认扫描 3–10 台错峰机器人，每台 4 Hz，250 ms 时限，每档持续 300 秒。在容量附近两个机器人数上，分别测复用缓存的 1、2、4、8 个专家，以及单专家重算。以 99% 请求满足时限为容量门槛。默认矩阵有 90 分钟正式到达窗口，另需编译、模型加载、预热与过载排空时间。各 batch 的分阶段中位数、逐元素误差在 `results/inference-opt-*/<batch>-<prefix>-<denoise>.json`，入选组合在 `plan.json`，容量和共跑明细在 `capacity.json` 和 `summary.csv`。指定新输出目录可避免复用旧测量。
+
 ## H100 机器人数量补测
 
 在上述 tmux 和 /workspace 中执行。已有 checkout 可先运行 `git switch h100-suite && git pull --ff-only`。

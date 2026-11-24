@@ -1,0 +1,101 @@
+{
+  "graph-graph": {
+    "baseline": 24,
+    "optimized": 24,
+    "discordant": [],
+    "improved": 0,
+    "regressed": 0,
+    "mcnemar_exact_p": 1,
+    "passed": true
+  },
+  "compile-graph": {
+    "baseline": 24,
+    "optimized": 24,
+    "discordant": [
+      {
+        "episode": 0,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 2,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 6,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 7,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 13,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 15,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 17,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 19,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 21,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 27,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 28,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 31,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 33,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 35,
+        "baseline": true,
+        "optimized": false
+      },
+      {
+        "episode": 37,
+        "baseline": false,
+        "optimized": true
+      },
+      {
+        "episode": 40,
+        "baseline": true,
+        "optimized": false
+      }
+    ],
+    "improved": 8,
+    "regressed": 8,
+    "mcnemar_exact_p": 1,
+    "passed": true
+  }
+}

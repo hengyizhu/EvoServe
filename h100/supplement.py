@@ -33,6 +33,11 @@ def measure(a):
     from robot_controls import QueueSlack, instrument
 
     sizes = (1,) if a.quick else (1, 2, 4, 8, 16)
+    plan = os.environ.get("EVOSERVE_INFERENCE_PLAN")
+    if plan:
+        from inference_engine import SelectedServer
+        sizes = tuple(int(n) for n in json.loads(Path(plan).read_text()))
+        load_module.Server = lambda sizes: SelectedServer(sizes, plan)
     train = a.mode in ("cache", "recompute")
     if train:
         # Width-specific winners in the published H100 exact-trajectory comparison.
