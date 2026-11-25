@@ -2,4 +2,4 @@ task,interval,state,completed,phase,round,episodes,exit_code,reason
 camera,1,complete,12,complete,,,0,
 texture,1,complete,12,complete,,,0,
 camera,4,complete,12,complete,,,0,
-camera,6,running,9,collecting,10,37,,
+camera,6,running,11,collecting,12,22,,
