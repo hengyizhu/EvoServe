@@ -33,7 +33,6 @@ for t,i in [('camera',1),('texture',1),('camera',4),('camera',6)]:
     progress=online/label/'status.json'
     d=json.loads(progress.read_text()) if progress.exists() else {}
     state=s['state']
-    if (here/'cutoff.json').exists() and state in ('running','queued'):state='截止未完成'
     if state=='complete':
         assert len(obs)==12 and all(r['rollout_episodes']==50 for r in obs)
         if i>1:

@@ -1,0 +1,5 @@
+group,expert,started,decisions,completed_decision_episodes,inflight_finished_episodes,total_validation_episodes,promotions
+sequential,camera,10,9,700,76,776,3
+sequential,Y,5,5,500,0,500,0
+fixed50,camera,9,8,800,0,800,3
+fixed50,Y,5,5,500,0,500,0
