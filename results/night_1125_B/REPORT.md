@@ -46,7 +46,7 @@ seed 10（20261110），相机与纹理纯在线 r32 / lr 5e-5。每轮 50 回�
 
 | 任务 | 部署间隔 | 状态 | 已落盘轮数 | 当前阶段 |
 |---|---|---|---|---|
-| camera | 1 | running | 0 |  |
+| camera | 1 | running | 0 | collecting |
 | texture | 1 | running | 0 |  |
 | camera | 4 | queued | 0 |  |
 | camera | 6 | queued | 0 |  |
