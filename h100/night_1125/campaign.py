@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import random
 import statistics
+import signal
 import subprocess
 import threading
 import time
@@ -44,11 +45,26 @@ def cell(cfg,smoke=False):
     tag='{group}-{load}-{m}-{method}-{graph}-{repeat}'.format(**cfg)
     folder=RAW/(('smoke-' if smoke else '')+tag)
     folder.mkdir(exist_ok=True)
+    saved=folder/'outcome.json'
+    if saved.exists():
+        old=json.loads(saved.read_text())
+        if not smoke or old['status']!='ok':
+            with lock:
+                cells.append(old);report()
+        return old['status']=='ok'
     (folder/'config.json').write_text(json.dumps(dict(cfg,service_ms=CAL,seconds=8 if smoke else 300)))
     status='ok'
     try:
         with (folder/'log').open('w') as f:
-            subprocess.run([str(HERE/'run_cell'),str(cfg['gpu']),str(folder)],stdout=f,stderr=subprocess.STDOUT,timeout=760,check=True)
+            cmd=[str(HERE/'run_cell'),str(cfg['gpu']),str(folder)]
+            proc=subprocess.Popen(cmd,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+            try:
+                if proc.wait(timeout=760):
+                    raise RuntimeError(f'cell exited {proc.returncode}')
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid,signal.SIGTERM)
+                proc.wait()
+                raise
         result=json.loads((folder/'result.json').read_text())
         if cfg['group']=='graph':
             k=json.loads((folder/'kernel.json').read_text());result.update(kernel_ms=k['ms'],kernel_name=k['name'])
@@ -57,6 +73,7 @@ def cell(cfg,smoke=False):
         lines=(folder/'log').read_text(errors='replace').splitlines()
         detail=next((line for line in reversed(lines) if any(t in line for t in ('Error:', 'Exception:', 'No CUDA'))),str(e))
         result=dict(error=detail[-400:])
+    saved.write_text(json.dumps(dict(cfg,status=status,smoke=smoke,**result)))
     print(tag,'smoke' if smoke else '',status,result.get('error',''),flush=True)
     if not smoke or status!='ok':
         with lock:
@@ -98,6 +115,19 @@ def report():
                 vs=sorted(float(r[key]) for r in rows)
                 text.append(f'|{key}|{len(vs)}|{statistics.median(vs):.2f}|{vs[math.ceil(.99*len(vs))-1]:.2f}|')
             text+=['',f'原实时日志未记录耗时；单独按 5 秒节拍回放最后 30 分钟。复现原命令 {sum(r["matches_recorded_command"]=="True" for r in rows)}/{len(rows)}。计时截至决策生成，另列含请求账本扫描的开销。']
+    if len(ok)==146:
+        varied=0
+        for rank,load in itertools.product((32,128),(70,75,80,85,90)):
+            safe=[max((r['m'] for r in ok if r['group']==f'r{rank}' and r['load']==load and r['repeat']==rep and r['slo']>=.995 and r['p99_ms']<=220),default=0) for rep in (1,2,3)]
+            varied+=len(set(safe))>1
+        graph_rows=[r for r in ok if r['group']=='graph']
+        ratios=[]
+        for on in graph_rows:
+            if on['graph']:
+                off=next(r for r in graph_rows if r['load']==on['load'] and r['repeat']==on['repeat'] and not r['graph'])
+                if off['expert_steps_s']:ratios.append(on['expert_steps_s']/off['expert_steps_s'])
+        text+=['',f'10 个 rank × 负载格中，{varied} 个格的安全宽度在重复间有变化。']
+        if ratios:text.append(f'同档同重复下，开图/关图的训练吞吐比为 {min(ratios):.2f}–{max(ratios):.2f}。')
     err=[c for c in cells if c['status']!='ok']
     text+=['',f'正式点成功 {len(ok)}/146；失败或冒烟异常 {len(err)}。逐点记录见 cells.csv。']
     for e in err:text.append(f"- {e['group']} {e['load']}% m={e['m']} {e['method']} rep={e['repeat']}：{e['error']}")
