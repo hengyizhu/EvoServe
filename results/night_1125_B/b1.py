@@ -3,7 +3,7 @@ import csv
 import json
 from pathlib import Path
 import sys
-import warnings
+import gzip
 import numpy as np
 from scipy.stats import spearmanr
 
@@ -29,7 +29,12 @@ cfg=json.loads((proto/'configs/learning_prior.json').read_text())
 prior=LearningPrior(cfg['points'],cfg['default_amplitude'])
 raw=[];pred=[]
 for task,seed,interval,run in runs():
-    rows=list(map(json.loads,(online/run/'rounds.jsonl').read_text().splitlines()))
+    archive=here/'raw'/f'{run}.jsonl.gz'
+    if archive.exists():
+        with gzip.open(archive,'rt') as f:
+            rows=[v['record'] for v in map(json.loads,f) if v['type']=='round']
+    else:
+        rows=list(map(json.loads,(online/run/'rounds.jsonl').read_text().splitlines()))
     assert len(rows)==12
     for r in rows:
         raw.append(dict(run=run,task=task,seed=seed,interval=interval,round=r['round'],step=r['model_step'],autonomous=r['unassisted_successes'],episodes=r['rollout_episodes'],assisted=r['rollout_successes'],takeovers=r['takeovers'],takeover_frames=r['takeover_frames'],control_frames=r['control_frames']))
