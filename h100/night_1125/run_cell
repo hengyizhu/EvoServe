@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+gpu=$1
+here=$(cd "$(dirname "$0")/../.." && pwd)
+source /var/tmp/evo-layout-654017a/env "$gpu"
+cd "$here"
+export PYTHONPATH="$PWD/h100/supplement:$PWD/h100:$PWD/prototype:$PWD/vendor/RLinf"
+export CUDA_MPS_PIPE_DIRECTORY="$2/pipe" CUDA_MPS_LOG_DIRECTORY="$2/mpslog" EVOSERVE_TRANSPORT=mps
+mkdir -p "$CUDA_MPS_PIPE_DIRECTORY" "$CUDA_MPS_LOG_DIRECTORY"
+nvidia-cuda-mps-control -d
+trap 'echo quit | nvidia-cuda-mps-control >/dev/null' EXIT
+taskset -c "$((gpu*8))-$((gpu*8+7))" "$SUITE_PYTHON" -u h100/night_1125/measure.py "$2"
