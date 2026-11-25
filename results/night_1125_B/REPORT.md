@@ -1,6 +1,6 @@
 # 11 月 25 日夜间学习实验 B
 
-更新于 2026-11-25 05:00 EST，纽约时间。
+更新于 2026-11-25 05:30 EST，纽约时间。
 
 ## B1　前 k 次验证预测下一次
 
@@ -47,8 +47,8 @@ seed 10（20261110），相机与纹理纯在线 r32 / lr 5e-5。每轮 50 回�
 | 任务 | 部署间隔 | 状态 | 已落盘轮数 | 当前阶段 |
 |---|---|---|---|---|
 | camera | 1 | complete | 12 | complete |
-| texture | 1 | running | 10 | collecting |
-| camera | 4 | running | 2 | collecting |
+| texture | 1 | running | 11 | collecting |
+| camera | 4 | running | 3 | collecting |
 | camera | 6 | queued | 0 |  |
 
 | 任务 | 指标 | 08 | 09 | 10 | 三 seed 均值 [范围] |
