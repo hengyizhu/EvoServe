@@ -1,5 +1,5 @@
 task,interval,state,completed,phase,round,episodes,exit_code,reason
-camera,1,running,8,collecting,9,49,,
-texture,1,running,6,collecting,7,12,,
+camera,1,running,10,collecting,11,35,,
+texture,1,running,7,collecting,8,29,,
 camera,4,queued,0,,,,,
 camera,6,queued,0,,,,,
